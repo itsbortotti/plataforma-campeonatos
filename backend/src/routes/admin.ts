@@ -1023,11 +1023,16 @@ export async function adminRoutes(app: FastifyInstance) {
     if (id === admin.id) {
       return reply.code(400).send({ error: "Não é possível excluir a si mesmo" });
     }
-    await prisma.player.updateMany({
-      where: { userId: id },
-      data: { userId: null },
-    });
-    await prisma.user.delete({ where: { id } });
+    await prisma.$transaction([
+      prisma.matchHighlight.deleteMany({ where: { givenByUserId: id } }),
+      prisma.adminAuditLog.deleteMany({ where: { userId: id } }),
+      prisma.userMembership.deleteMany({ where: { userId: id } }),
+      prisma.player.updateMany({
+        where: { userId: id },
+        data: { userId: null },
+      }),
+      prisma.user.delete({ where: { id } }),
+    ]);
     await writeAudit({
       userId: admin.id,
       userEmail: admin.email,
