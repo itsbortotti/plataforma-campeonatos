@@ -16,13 +16,13 @@ export async function authRoutes(app: FastifyInstance) {
   app.post("/api/auth/login", async (request, reply) => {
     const body = z
       .object({
-        email: z.string().email(),
+        email: z.string().min(1),
         password: z.string().min(1),
       })
       .parse(request.body);
 
     const user = await prisma.user.findUnique({
-      where: { email: body.email.toLowerCase() },
+      where: { email: body.email.trim().toLowerCase() },
     });
     if (!user?.passwordHash) {
       return reply.code(401).send({ error: "Credenciais inválidas" });

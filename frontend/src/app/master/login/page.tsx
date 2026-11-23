@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export default function MasterLoginPage() {
-  const [email, setEmail] = useState("admin@sfl.local");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -82,11 +82,11 @@ export default function MasterLoginPage() {
 
           <div className="grid gap-2">
             <label htmlFor="master-email" className="text-sm font-medium">
-              E-mail
+              Usuário
             </label>
             <Input
               id="master-email"
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
