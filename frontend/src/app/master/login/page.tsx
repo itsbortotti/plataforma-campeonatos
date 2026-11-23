@@ -82,14 +82,15 @@ export default function MasterLoginPage() {
 
           <div className="grid gap-2">
             <label htmlFor="master-email" className="text-sm font-medium">
-              Usuário
+              E-mail
             </label>
             <Input
               id="master-email"
-              type="text"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
+              placeholder="ex: danilo@sfl.com"
               className="h-12 rounded-xl text-base"
               required
             />

@@ -46,9 +46,19 @@ function TeamLoginForm() {
           (m: { role: string }) =>
             m.role === "team_staff" || m.role === "captain",
         );
+      const canMaster =
+        me.user?.role === "admin" ||
+        memberships.some(
+          (m: { role: string }) =>
+            m.role === "owner" || m.role === "league_admin",
+        );
       if (!canTeam) {
+        if (canMaster) {
+          window.location.assign("/admin");
+          return;
+        }
         setError(
-          "Esta conta não tem acesso de time. Peça liberação ao Master em Acessos.",
+          "Esta conta não tem acesso de time. Peça liberação ao Master em Usuários.",
         );
         return;
       }
