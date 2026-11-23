@@ -30,7 +30,7 @@ npm run dev            # http://127.0.0.1:3000
 |---|---|
 | Site | http://127.0.0.1:3000 |
 | API health | http://127.0.0.1:4006/health |
-| Login Master | http://127.0.0.1:3000/master/login — `master` / `sfl2026` |
+| Login Master | http://127.0.0.1:3000/master/login |
 | Login Time | http://127.0.0.1:3000/time/login |
 | Painel Master | http://127.0.0.1:3000/admin |
 | Painel do time | http://127.0.0.1:3000/capitao |
@@ -50,5 +50,5 @@ Blueprint em `render.yaml` (~US$20/mês: 2× Starter + Postgres basic-256mb):
 1. No [Render](https://dashboard.render.com): **New → Blueprint** → repo `itsbortotti/plataforma-campeonatos`.
 2. Aprovar o sync (serviços `sfl-api`, `sfl-web`, DB `sfl-db`).
 3. Após o deploy: URLs `https://sfl-web…onrender.com` e `https://sfl-api…onrender.com`.
-4. Login Master seed: `master` / `sfl2026` (troque depois).
+4. Defina `SEED_ADMIN_USER` e `SEED_ADMIN_PASSWORD` no serviço `sfl-api` (não versionar a senha).
 5. Domínio próprio: no serviço `sfl-web` → Custom Domain → na Hostinger, CNAME para o host do Render.

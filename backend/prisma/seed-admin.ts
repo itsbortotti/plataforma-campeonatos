@@ -4,11 +4,16 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const DEFAULT_COMPETITION_ID = "a0000000-0000-4000-8000-000000000001";
-const LOGIN = "master";
-const PASSWORD = "sfl2026";
+const LOGIN = (process.env.SEED_ADMIN_USER || "master").trim().toLowerCase();
+const PASSWORD = process.env.SEED_ADMIN_PASSWORD || "";
 const LEGACY_EMAIL = "admin@sfl.local";
 
 async function main() {
+  if (!PASSWORD) {
+    throw new Error(
+      "Missing SEED_ADMIN_PASSWORD — set it in the environment (never commit the value).",
+    );
+  }
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
 
   const competition = await prisma.competition.upsert({
@@ -84,7 +89,7 @@ async function main() {
     });
   }
 
-  console.log(`Admin/owner ready: ${user.email} / ${PASSWORD}`);
+  console.log(`Admin/owner ready: ${user.email}`);
   console.log(`Competition: ${competition.slug} (${competition.id})`);
 }
 
