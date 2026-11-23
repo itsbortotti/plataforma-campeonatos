@@ -50,6 +50,24 @@ export const DEFAULT_SPONSORS: SponsorBrand[] = [
     imageUrl: "/patrocinadores/wsbc.png",
     linkUrl: null,
   },
+  {
+    id: "altivon",
+    name: "Altivon",
+    imageUrl: "/patrocinadores/altivon.png",
+    linkUrl: "https://www.altivon.com.br",
+  },
+  {
+    id: "garageflow",
+    name: "GarageFlow",
+    imageUrl: "/patrocinadores/garageflow.png",
+    linkUrl: "https://garageflow.altivon.com.br",
+  },
+  {
+    id: "operatta",
+    name: "Operatta",
+    imageUrl: "/patrocinadores/operatta.png",
+    linkUrl: "https://chatflow-web.onrender.com",
+  },
 ];
 
 export const DEFAULT_BRAND: SystemBrand = {

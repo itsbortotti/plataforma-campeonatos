@@ -38,7 +38,37 @@ export const DEFAULT_SPONSORS: SponsorDto[] = [
     imageUrl: "/patrocinadores/wsbc.png",
     linkUrl: null,
   },
+  {
+    id: "altivon",
+    name: "Altivon",
+    imageUrl: "/patrocinadores/altivon.png",
+    linkUrl: "https://www.altivon.com.br",
+  },
+  {
+    id: "garageflow",
+    name: "GarageFlow",
+    imageUrl: "/patrocinadores/garageflow.png",
+    linkUrl: "https://garageflow.altivon.com.br",
+  },
+  {
+    id: "operatta",
+    name: "Operatta",
+    imageUrl: "/patrocinadores/operatta.png",
+    linkUrl: "https://chatflow-web.onrender.com",
+  },
 ];
+
+function withDefaultSponsors(sponsors: SponsorDto[]): SponsorDto[] {
+  const byId = new Map(sponsors.map((s) => [s.id, s]));
+  const merged = [...sponsors];
+  for (const def of DEFAULT_SPONSORS) {
+    if (!byId.has(def.id)) {
+      merged.push(def);
+      byId.set(def.id, def);
+    }
+  }
+  return merged;
+}
 
 const DEFAULTS: SystemSettingsDto = {
   siteName: "SFL",
@@ -120,6 +150,16 @@ export async function getSystemSettings(): Promise<SystemSettingsDto> {
       data: { sponsorsJson: DEFAULT_SPONSORS },
     });
     return mapRow(seeded);
+  }
+
+  // Inclui patrocinadores padrão novos (ex.: Altivon) sem apagar os já salvos.
+  const merged = withDefaultSponsors(mapped.sponsors);
+  if (merged.length !== mapped.sponsors.length) {
+    const saved = await prisma.systemSettings.update({
+      where: { id: "default" },
+      data: { sponsorsJson: merged },
+    });
+    return mapRow(saved);
   }
 
   return mapped;

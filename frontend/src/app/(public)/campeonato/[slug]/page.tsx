@@ -28,8 +28,23 @@ import { VenueLink } from "@/components/VenueLink";
 import { formatDate } from "@/lib/format-date";
 
 const sponsors = [
-  { name: "Sr. e Sra. Docinho", logo: "/patrocinadores/docinho.png" },
-  { name: "L3M'S Utilitários", logo: "/patrocinadores/l3ms.jpeg" },
+  { name: "Sr. e Sra. Docinho", logo: "/patrocinadores/docinho.png", href: null },
+  { name: "L3M'S Utilitários", logo: "/patrocinadores/l3ms.jpeg", href: null },
+  {
+    name: "Altivon",
+    logo: "/patrocinadores/altivon.png",
+    href: "https://www.altivon.com.br",
+  },
+  {
+    name: "GarageFlow",
+    logo: "/patrocinadores/garageflow.png",
+    href: "https://garageflow.altivon.com.br",
+  },
+  {
+    name: "Operatta",
+    logo: "/patrocinadores/operatta.png",
+    href: "https://chatflow-web.onrender.com",
+  },
 ] as const;
 
 export default async function CompetitionHomePage({
@@ -91,17 +106,37 @@ export default async function CompetitionHomePage({
             <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Oferecimento
             </span>
-            {sponsors.map((s) => (
-              <Image
-                key={s.name}
-                src={s.logo}
-                alt={s.name}
-                width={48}
-                height={48}
-                className="object-contain h-8 w-auto rounded"
-                title={s.name}
-              />
-            ))}
+            {sponsors.map((s) => {
+              const img = (
+                <Image
+                  src={s.logo}
+                  alt={s.name}
+                  width={48}
+                  height={48}
+                  className="object-contain h-8 w-auto rounded"
+                  title={s.name}
+                />
+              );
+              if (!s.href) {
+                return (
+                  <span key={s.name} className="inline-flex">
+                    {img}
+                  </span>
+                );
+              }
+              return (
+                <a
+                  key={s.name}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.name}
+                  className="inline-flex"
+                >
+                  {img}
+                </a>
+              );
+            })}
           </div>
         </div>
 
