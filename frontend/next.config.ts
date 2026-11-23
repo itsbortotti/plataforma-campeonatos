@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
       { hostname: "img.youtube.com" },
       { hostname: "127.0.0.1" },
       { hostname: "localhost" },
+      { hostname: "*.onrender.com" },
+      { hostname: "sflcampeonato.com.br" },
+      { hostname: "www.sflcampeonato.com.br" },
     ],
   },
   async rewrites() {

@@ -45,18 +45,26 @@ export async function resolveUser(
   };
 }
 
+const cookieSecure =
+  process.env.COOKIE_SECURE === "true" ||
+  process.env.NODE_ENV === "production";
+
 export function setAuthCookie(reply: FastifyReply, token: string) {
   reply.setCookie(config.cookieName, token, {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    secure: false,
+    secure: cookieSecure,
     maxAge: 60 * 60 * 24 * 14,
   });
 }
 
 export function clearAuthCookie(reply: FastifyReply) {
-  reply.clearCookie(config.cookieName, { path: "/" });
+  reply.clearCookie(config.cookieName, {
+    path: "/",
+    secure: cookieSecure,
+    sameSite: "lax",
+  });
 }
 
 export async function requireUser(

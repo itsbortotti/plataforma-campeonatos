@@ -42,3 +42,13 @@ O Next reescreve `/api/*` para a API (`NEXT_PUBLIC_API_URL`, padrão `http://127
 ## Importação de produção
 
 Copie `.env.import.example` → `backend/.env.import` e rode `npm run import:prod` na pasta `backend/`.
+
+## Deploy Render (plano barato)
+
+Blueprint em `render.yaml` (~US$20/mês: 2× Starter + Postgres basic-256mb):
+
+1. No [Render](https://dashboard.render.com): **New → Blueprint** → repo `itsbortotti/plataforma-campeonatos`.
+2. Aprovar o sync (serviços `sfl-api`, `sfl-web`, DB `sfl-db`).
+3. Após o deploy: URLs `https://sfl-web…onrender.com` e `https://sfl-api…onrender.com`.
+4. Login Master seed: `admin@sfl.local` / `admin123` (troque depois).
+5. Domínio próprio: no serviço `sfl-web` → Custom Domain → na Hostinger, CNAME para o host do Render.
