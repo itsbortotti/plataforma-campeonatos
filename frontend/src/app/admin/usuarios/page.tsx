@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { apiGet } from "@/lib/api-server";
-import { getCompetitions, getTeams } from "@/lib/queries";
+import { getTeams } from "@/lib/queries";
 import { UsersList, type UserRow } from "@/components/admin/UsersList";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import {
@@ -34,7 +34,7 @@ export default async function UsuariosPage({
   const { page, pageSize, q } = parseListSearchParams(sp);
   const qs = buildListQuery({ page, pageSize, q });
 
-  const [data, competitions, teams] = await Promise.all([
+  const [data, teams] = await Promise.all([
     apiGet<Paginated<ApiUser>>(`/api/admin/users?${qs}`).catch(
       () =>
         ({
@@ -47,7 +47,6 @@ export default async function UsuariosPage({
           hasPrev: false,
         }) satisfies Paginated<ApiUser>,
     ),
-    getCompetitions(),
     getTeams(),
   ]);
 
@@ -65,12 +64,11 @@ export default async function UsuariosPage({
     <div className="space-y-6">
       <AdminPageHeader
         title="Usuários"
-        description="Crie a conta e escolha o perfil de acesso. Perfis de time pedem o time; perfis da liga não."
+        description="Crie a conta e escolha o perfil. Só comissão/capitão pedem o time."
       />
       <Suspense fallback={null}>
         <UsersList
           users={rows}
-          competitions={competitions.map((c) => ({ id: c.id, name: c.name }))}
           teams={teams.map((t) => ({ id: t.id, name: t.name }))}
           page={data.page}
           pageCount={data.pageCount}

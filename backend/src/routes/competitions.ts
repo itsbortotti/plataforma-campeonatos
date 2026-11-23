@@ -252,7 +252,7 @@ export async function competitionRoutes(app: FastifyInstance) {
         userId: z.string().uuid().optional(),
         email: z.string().email().optional(),
         role: z.nativeEnum(MembershipRole),
-        competitionId: z.string().uuid(),
+        competitionId: z.string().uuid().optional(),
         teamId: z.string().uuid().nullable().optional(),
         password: z.string().min(6).optional(),
         displayName: z.string().optional(),
@@ -276,12 +276,32 @@ export async function competitionRoutes(app: FastifyInstance) {
         .send({ error: "owner/league_admin não levam teamId" });
     }
 
+    let competitionId = body.competitionId;
+    if (!competitionId) {
+      const preferred =
+        (await prisma.competition.findFirst({
+          where: { slug: "sfl", isActive: true },
+          select: { id: true },
+        })) ??
+        (await prisma.competition.findFirst({
+          where: { isActive: true },
+          orderBy: { name: "asc" },
+          select: { id: true },
+        })) ??
+        (await prisma.competition.findFirst({
+          orderBy: { name: "asc" },
+          select: { id: true },
+        }));
+      if (!preferred) {
+        return reply.code(400).send({ error: "Nenhum campeonato cadastrado" });
+      }
+      competitionId = preferred.id;
+    }
+
     const isOwner = await isGlobalOwnerOrBootstrapAdmin(actor);
     const memberships = await listMembershipsForUser(actor.id);
     const isLeagueAdmin = memberships.some(
-      (m) =>
-        m.competitionId === body.competitionId &&
-        (m.role === "owner" || m.role === "league_admin"),
+      (m) => m.role === "owner" || m.role === "league_admin",
     );
 
     if (body.role === "owner" && !isOwner) {
@@ -335,7 +355,7 @@ export async function competitionRoutes(app: FastifyInstance) {
       where: {
         userId,
         role: body.role,
-        competitionId: body.competitionId,
+        competitionId,
         teamId,
       },
     });
@@ -345,7 +365,7 @@ export async function competitionRoutes(app: FastifyInstance) {
       data: {
         userId,
         role: body.role,
-        competitionId: body.competitionId,
+        competitionId,
         teamId,
       },
     });
@@ -356,7 +376,7 @@ export async function competitionRoutes(app: FastifyInstance) {
       entityType: "membership",
       entityId: row.id,
       description: `Concedeu ${body.role}`,
-      details: body,
+      details: { ...body, competitionId },
     });
     return row;
   });

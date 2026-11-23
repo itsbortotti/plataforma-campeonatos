@@ -69,7 +69,6 @@ export interface UserRow {
 
 type Props = {
   users: UserRow[];
-  competitions: Array<{ id: string; name: string }>;
   teams: Array<{ id: string; name: string }>;
   page: number;
   pageCount: number;
@@ -81,20 +80,17 @@ type CreateForm = {
   email: string;
   displayName: string;
   password: string;
-  competitionId: string;
   role: ProfileRole;
   teamId: string;
 };
 
 type GrantForm = {
-  competitionId: string;
   role: ProfileRole;
   teamId: string;
 };
 
 export function UsersList({
   users,
-  competitions,
   teams,
   page,
   pageCount,
@@ -113,13 +109,11 @@ export function UsersList({
     email: "",
     displayName: "",
     password: "",
-    competitionId: competitions[0]?.id ?? "",
     role: "league_admin",
     teamId: teams[0]?.id ?? "",
   });
 
   const [grantForm, setGrantForm] = useState<GrantForm>({
-    competitionId: competitions[0]?.id ?? "",
     role: "team_staff",
     teamId: teams[0]?.id ?? "",
   });
@@ -133,7 +127,6 @@ export function UsersList({
       email: "",
       displayName: "",
       password: "",
-      competitionId: competitions[0]?.id ?? "",
       role: "league_admin",
       teamId: teams[0]?.id ?? "",
     });
@@ -143,7 +136,6 @@ export function UsersList({
   function openGrant(user: UserRow) {
     setGrantUser(user);
     setGrantForm({
-      competitionId: competitions[0]?.id ?? "",
       role: "team_staff",
       teamId: teams[0]?.id ?? "",
     });
@@ -164,10 +156,6 @@ export function UsersList({
       toast.error("Senha deve ter ao menos 6 caracteres.");
       return;
     }
-    if (!createForm.competitionId) {
-      toast.error("Escolha o campeonato.");
-      return;
-    }
     if (needsTeam(createForm.role) && !createForm.teamId) {
       toast.error("Escolha o time deste perfil.");
       return;
@@ -179,7 +167,6 @@ export function UsersList({
         password: createForm.password,
         displayName: createForm.displayName.trim() || undefined,
         role: createForm.role,
-        competitionId: createForm.competitionId,
         teamId: needsTeam(createForm.role) ? createForm.teamId : null,
       });
       if (result.success) {
@@ -193,10 +180,6 @@ export function UsersList({
 
   function handleGrant() {
     if (!grantUser) return;
-    if (!grantForm.competitionId) {
-      toast.error("Escolha o campeonato.");
-      return;
-    }
     if (needsTeam(grantForm.role) && !grantForm.teamId) {
       toast.error("Escolha o time deste perfil.");
       return;
@@ -205,7 +188,6 @@ export function UsersList({
       const result = await grantMembership({
         userId: grantUser.id,
         role: grantForm.role,
-        competitionId: grantForm.competitionId,
         teamId: needsTeam(grantForm.role) ? grantForm.teamId : null,
       });
       if (result.success) {
@@ -259,38 +241,19 @@ export function UsersList({
   }
 
   function ProfileFields({
-    competitionId,
     role,
     teamId,
-    onCompetition,
     onRole,
     onTeam,
   }: {
-    competitionId: string;
     role: ProfileRole;
     teamId: string;
-    onCompetition: (v: string) => void;
     onRole: (v: ProfileRole) => void;
     onTeam: (v: string) => void;
   }) {
     const teamRequired = needsTeam(role);
     return (
       <>
-        <div className="space-y-1.5">
-          <Label>Campeonato</Label>
-          <Select value={competitionId} onValueChange={(v) => onCompetition(v ?? "")}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Campeonato" />
-            </SelectTrigger>
-            <SelectContent>
-              {competitions.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         <div className="space-y-1.5">
           <Label>Perfil de acesso</Label>
           <Select
@@ -311,7 +274,7 @@ export function UsersList({
           <p className="text-[11px] text-muted-foreground">
             {teamRequired
               ? "Perfil de time — escolha o clube abaixo."
-              : "Perfil da liga — vale para o campeonato inteiro."}
+              : "Perfil da liga — acesso Master, sem vínculo de time."}
           </p>
         </div>
         {teamRequired ? (
@@ -381,10 +344,6 @@ export function UsersList({
                         <span>
                           {roleLabel[m.role] ?? m.role}
                           {m.teamName ? ` · ${m.teamName}` : ""}
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · {m.competitionName}
-                          </span>
                         </span>
                         <button
                           type="button"
@@ -482,12 +441,8 @@ export function UsersList({
               />
             </div>
             <ProfileFields
-              competitionId={createForm.competitionId}
               role={createForm.role}
               teamId={createForm.teamId}
-              onCompetition={(v) =>
-                setCreateForm((f) => ({ ...f, competitionId: v }))
-              }
               onRole={(v) => setCreateForm((f) => ({ ...f, role: v }))}
               onTeam={(v) => setCreateForm((f) => ({ ...f, teamId: v }))}
             />
@@ -522,12 +477,8 @@ export function UsersList({
           ) : null}
           <div className="space-y-3">
             <ProfileFields
-              competitionId={grantForm.competitionId}
               role={grantForm.role}
               teamId={grantForm.teamId}
-              onCompetition={(v) =>
-                setGrantForm((f) => ({ ...f, competitionId: v }))
-              }
               onRole={(v) => setGrantForm((f) => ({ ...f, role: v }))}
               onTeam={(v) => setGrantForm((f) => ({ ...f, teamId: v }))}
             />

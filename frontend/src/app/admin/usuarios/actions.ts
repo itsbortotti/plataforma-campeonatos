@@ -31,7 +31,6 @@ export async function createUserWithProfile(fields: {
   password: string;
   displayName?: string;
   role: "owner" | "league_admin" | "team_staff" | "captain";
-  competitionId: string;
   teamId?: string | null;
 }) {
   try {
@@ -40,7 +39,6 @@ export async function createUserWithProfile(fields: {
       password: fields.password,
       displayName: fields.displayName,
       role: fields.role,
-      competitionId: fields.competitionId,
       teamId: fields.teamId ?? null,
     });
     revalidateUsers();
@@ -56,7 +54,6 @@ export async function createUserWithProfile(fields: {
 export async function grantMembership(fields: {
   userId: string;
   role: "owner" | "league_admin" | "team_staff" | "captain";
-  competitionId: string;
   teamId?: string | null;
 }) {
   try {
