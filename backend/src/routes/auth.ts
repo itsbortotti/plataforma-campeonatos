@@ -15,24 +15,36 @@ import { config } from "../core/config.js";
 export async function authRoutes(app: FastifyInstance) {
   app.post("/api/auth/login", async (request, reply) => {
     const raw = (request.body ?? {}) as { email?: unknown; password?: unknown };
-    const email =
+    const login =
       typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
     const password = typeof raw.password === "string" ? raw.password : "";
 
-    if (!email) {
+    if (!login) {
       return reply
         .code(400)
-        .send({ error: "Digite o e-mail da conta (ex: nome@dominio.com)." });
+        .send({ error: "Digite o usuário ou o e-mail da conta." });
     }
     if (!password) {
       return reply.code(400).send({ error: "Digite a senha." });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    // Aceita "master" e "master@sfl.local" (seed antigo gravava sem @).
+    const candidates = [login];
+    if (!login.includes("@")) {
+      candidates.push(`${login}@sfl.local`);
+    } else if (login.endsWith("@sfl.local")) {
+      candidates.push(login.slice(0, -"@sfl.local".length));
+    }
+
+    let user = null;
+    for (const email of candidates) {
+      user = await prisma.user.findUnique({ where: { email } });
+      if (user) break;
+    }
     if (!user?.passwordHash) {
       return reply.code(401).send({
         error:
-          "E-mail ou senha incorretos. Use o e-mail completo cadastrado (ex: nome@dominio.com).",
+          "Usuário ou senha incorretos. No Master use master / senha do ambiente, ou o e-mail completo da conta.",
       });
     }
     const ok = await bcrypt.compare(password, user.passwordHash);

@@ -86,7 +86,11 @@ export default function MasterLoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4"
+          noValidate
+        >
           {error ? (
             <div
               className="rounded-xl border border-red-300/80 bg-red-50 px-3.5 py-2.5 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200"
@@ -103,10 +107,14 @@ export default function MasterLoginPage() {
             <Input
               id="master-email"
               type="text"
+              inputMode="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
-              placeholder="master ou danilo@sfl.com"
+              placeholder="master"
               className="h-12 rounded-xl text-base"
               required
             />

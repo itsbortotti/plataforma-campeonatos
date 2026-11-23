@@ -4,9 +4,13 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const DEFAULT_COMPETITION_ID = "a0000000-0000-4000-8000-000000000001";
-const LOGIN = (process.env.SEED_ADMIN_USER || "master").trim().toLowerCase();
+const LOGIN_RAW = (process.env.SEED_ADMIN_USER || "master").trim().toLowerCase();
+/** E-mail canônico no banco (sempre com @). Login ainda aceita só "master". */
+const LOGIN = LOGIN_RAW.includes("@")
+  ? LOGIN_RAW
+  : `${LOGIN_RAW}@sfl.local`;
 const PASSWORD = process.env.SEED_ADMIN_PASSWORD || "";
-const LEGACY_EMAIL = "admin@sfl.local";
+const LEGACY_EMAILS = ["admin@sfl.local", LOGIN_RAW, "master"];
 
 async function main() {
   if (!PASSWORD) {
@@ -33,13 +37,30 @@ async function main() {
     },
   });
 
-  const legacy = await prisma.user.findUnique({ where: { email: LEGACY_EMAIL } });
-  const existing = await prisma.user.findUnique({ where: { email: LOGIN } });
+  let user = await prisma.user.findUnique({ where: { email: LOGIN } });
+  if (!user) {
+    for (const legacyEmail of LEGACY_EMAILS) {
+      if (legacyEmail === LOGIN) continue;
+      const legacy = await prisma.user.findUnique({
+        where: { email: legacyEmail },
+      });
+      if (legacy) {
+        user = await prisma.user.update({
+          where: { id: legacy.id },
+          data: {
+            email: LOGIN,
+            passwordHash,
+            role: "admin",
+            displayName: "Master SFL",
+          },
+        });
+        break;
+      }
+    }
+  }
 
-  let user;
-  if (legacy && !existing) {
-    user = await prisma.user.update({
-      where: { id: legacy.id },
+  if (!user) {
+    user = await prisma.user.create({
       data: {
         email: LOGIN,
         passwordHash,
@@ -48,23 +69,25 @@ async function main() {
       },
     });
   } else {
-    user = await prisma.user.upsert({
-      where: { email: LOGIN },
-      create: {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
         email: LOGIN,
         passwordHash,
         role: "admin",
         displayName: "Master SFL",
       },
-      update: {
-        passwordHash,
-        role: "admin",
-        displayName: "Master SFL",
-      },
     });
-    if (legacy && legacy.id !== user.id) {
+  }
+
+  for (const legacyEmail of LEGACY_EMAILS) {
+    if (legacyEmail === LOGIN) continue;
+    const leftover = await prisma.user.findUnique({
+      where: { email: legacyEmail },
+    });
+    if (leftover && leftover.id !== user.id) {
       await prisma.user.update({
-        where: { id: legacy.id },
+        where: { id: leftover.id },
         data: { passwordHash: null, role: "player" },
       });
     }
