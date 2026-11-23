@@ -330,12 +330,14 @@ export async function competitionRoutes(app: FastifyInstance) {
       return reply.code(403).send({ error: "Só owner pode conceder owner" });
     }
     if (!isOwner && !isLeagueAdmin) {
-      return reply.code(403).send({ error: "Sem permissão" });
+      return reply
+        .code(403)
+        .send({ error: "Você não tem permissão para conceder este perfil." });
     }
     if (!isOwner && body.role === "league_admin") {
       return reply
         .code(403)
-        .send({ error: "Só owner pode criar admin da liga" });
+        .send({ error: "Só o Owner pode criar Admin da liga." });
     }
 
     let userId = body.userId;
@@ -418,7 +420,11 @@ export async function competitionRoutes(app: FastifyInstance) {
       const ok = await listMembershipsForUser(actor.id).then((ms) =>
         ms.some((m) => m.role === "owner" || m.role === "league_admin"),
       );
-      if (!ok) return reply.code(403).send({ error: "Sem permissão" });
+      if (!ok) {
+        return reply
+          .code(403)
+          .send({ error: "Você não tem permissão para remover este perfil." });
+      }
     }
 
     await prisma.userMembership.delete({ where: { id } });

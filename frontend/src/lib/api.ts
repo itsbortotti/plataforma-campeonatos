@@ -1,3 +1,5 @@
+import { ApiError, friendlyApiMessage } from "@/lib/api-error";
+
 /** Browser uses same-origin `/api` (rewritten to backend). Server hits backend directly. */
 export const API_URL =
   typeof window === "undefined"
@@ -37,21 +39,32 @@ export async function apiFetch<T>(
   options: ApiOptions = {},
 ): Promise<T> {
   const headers = await buildHeaders(options);
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-    credentials: "include",
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+      credentials: "include",
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError(
+      503,
+      "Não foi possível falar com o servidor. Tente de novo em instantes.",
+    );
+  }
   if (!res.ok) {
-    let message = `API ${res.status}`;
+    let apiMessage: string | undefined;
     try {
       const data = await res.json();
-      message = data.error || message;
+      apiMessage = typeof data.error === "string" ? data.error : undefined;
     } catch {
       // ignore
     }
-    throw new Error(message);
+    throw new ApiError(
+      res.status,
+      friendlyApiMessage(res.status, apiMessage),
+    );
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

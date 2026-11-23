@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { API_URL } from "@/lib/api";
+import { ApiError, friendlyApiMessage } from "@/lib/api-error";
 
 type ApiOptions = RequestInit;
 
@@ -30,23 +31,34 @@ export async function apiFetch<T>(
   options: ApiOptions = {},
 ): Promise<T> {
   const headers = await buildHeaders(options);
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError(
+      503,
+      "Não foi possível falar com o servidor. Tente de novo em instantes.",
+    );
+  }
   if (!res.ok) {
-    let message = `API ${res.status}`;
+    let apiMessage: string | undefined;
     try {
       const data = await res.json();
-      message = data.error || message;
+      apiMessage = typeof data.error === "string" ? data.error : undefined;
       if (Array.isArray(data.suspended) && data.suspended.length > 0) {
-        message = `${message} (${data.suspended.length} jogador${data.suspended.length === 1 ? "" : "es"})`;
+        apiMessage = `${apiMessage || "Operação bloqueada"} (${data.suspended.length} jogador${data.suspended.length === 1 ? "" : "es"})`;
       }
     } catch {
-      // ignore
+      // ignore non-json
     }
-    throw new Error(message);
+    throw new ApiError(
+      res.status,
+      friendlyApiMessage(res.status, apiMessage),
+    );
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
