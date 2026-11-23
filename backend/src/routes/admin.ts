@@ -42,7 +42,7 @@ export async function adminRoutes(app: FastifyInstance) {
     if (!request.url.startsWith("/api/admin")) return;
     const user = await requireAdmin(request, reply);
     if (!user) return;
-    (request as { adminUser?: typeof user }).adminUser = user;
+    (request as unknown as { adminUser?: typeof user }).adminUser = user;
   });
 
   // ── Teams ──
@@ -66,7 +66,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.post("/api/admin/teams", async (request, reply) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const body = z
       .object({
         name: z.string(),
@@ -100,7 +100,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.patch("/api/admin/teams/:id", async (request, reply) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     const body = z
       .object({
@@ -126,7 +126,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.delete("/api/admin/teams/:id", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     await prisma.team.delete({ where: { id } });
     await writeAudit({
@@ -144,7 +144,7 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get("/api/admin/seasons", async () => prisma.season.findMany({ orderBy: { year: "desc" } }));
 
   app.post("/api/admin/seasons", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const body = z
       .object({
         competitionId: z.string().uuid(),
@@ -179,7 +179,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.patch("/api/admin/seasons/:id", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     const body = z
       .object({
@@ -211,7 +211,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.delete("/api/admin/seasons/:id", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     await prisma.season.delete({ where: { id } });
     await writeAudit({
@@ -271,7 +271,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.post("/api/admin/players", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const body = z
       .object({
         name: z.string(),
@@ -316,7 +316,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.patch("/api/admin/players/:id", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     const body = z
       .object({
@@ -364,7 +364,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.delete("/api/admin/players/:id", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     await prisma.player.delete({ where: { id } });
     await writeAudit({
@@ -388,7 +388,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.post("/api/admin/rosters", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const body = z
       .object({
         seasonId: z.string().uuid(),
@@ -480,7 +480,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.post("/api/admin/matches", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const body = z
       .object({
         seasonId: z.string().uuid(),
@@ -537,7 +537,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.patch("/api/admin/matches/:id", async (request, reply) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     const body = z
       .object({
@@ -626,7 +626,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.delete("/api/admin/matches/:id", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     await prisma.match.delete({ where: { id } });
     await writeAudit({
@@ -647,7 +647,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.put("/api/admin/matches/:id/lineups", async (request, reply) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     const body = z
       .object({
@@ -755,7 +755,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.delete("/api/admin/matches/:id/ratings", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     await prisma.matchPlayerRating.deleteMany({ where: { matchId: id } });
     await writeAudit({
@@ -770,7 +770,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.put("/api/admin/matches/:id/ratings", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     const body = z
       .object({
@@ -1018,7 +1018,7 @@ export async function adminRoutes(app: FastifyInstance) {
 
 
   app.delete("/api/admin/users/:id", async (request, reply) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     if (id === admin.id) {
       return reply.code(400).send({ error: "Não é possível excluir a si mesmo" });
@@ -1117,7 +1117,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.post("/api/admin/seasons/:seasonId/card-resets", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { seasonId } = z.object({ seasonId: z.string().uuid() }).parse(request.params);
     const body = z
       .object({
@@ -1149,7 +1149,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.delete("/api/admin/card-resets/:id", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
     await prisma.cardReset.delete({ where: { id } });
     await writeAudit({
@@ -1165,7 +1165,7 @@ export async function adminRoutes(app: FastifyInstance) {
 
   /** Gera tabela de confrontos (pontos corridos ou 1ª rodada de mata-mata). */
   app.post("/api/admin/seasons/:seasonId/generate-fixtures", async (request, reply) => {
-    const admin = (request as { adminUser: { id: string; email: string } }).adminUser;
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
     const { seasonId } = z.object({ seasonId: z.string().uuid() }).parse(request.params);
     const body = z
       .object({
@@ -1293,7 +1293,7 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get("/api/admin/settings", async () => getSystemSettings());
 
   app.put("/api/admin/settings", async (request) => {
-    const admin = (request as { adminUser: { id: string; email: string } })
+    const admin = (request as unknown as { adminUser: { id: string; email: string } })
       .adminUser;
     const body = z
       .object({

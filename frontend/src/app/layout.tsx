@@ -9,6 +9,9 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { apiGet } from "@/lib/api-server";
 import { DEFAULT_BRAND, type SystemBrand } from "@/lib/brand";
 
+/** Avoid build-time prerender against API that is not up during Docker build. */
+export const dynamic = "force-dynamic";
+
 const display = Bebas_Neue({
   weight: "400",
   variable: "--font-display",
