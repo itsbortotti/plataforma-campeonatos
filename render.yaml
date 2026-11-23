@@ -61,6 +61,9 @@ services:
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
     healthCheckPath: /
+    domains:
+      - sflcampeonato.com.br
+      - www.sflcampeonato.com.br
     buildFilter:
       paths:
         - frontend/**
