@@ -1,0 +1,488 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+enum MembershipRole {
+  owner
+  league_admin
+  team_staff
+  captain
+}
+
+enum HighlightSlot {
+  mvp
+  second
+  third
+  respect
+}
+
+enum LineupStatus {
+  starter
+  substitute
+}
+
+enum MatchEventType {
+  goal
+  own_goal
+  penalty_goal
+  penalty_miss
+  yellow_card
+  red_card
+  substitution
+  half_time
+  second_half
+  full_time
+  save
+  tackle
+  key_pass
+  shot
+  foul_suffered
+  penalty_save
+}
+
+enum MatchHalf {
+  first
+  second
+  extra_first
+  extra_second
+  penalties
+}
+
+enum MatchStatus {
+  scheduled
+  lineups_set
+  live
+  halftime
+  finished
+  postponed
+  awarded
+  abandoned
+}
+
+enum CompetitionFormat {
+  league
+  knockout
+  groups_knockout
+}
+
+enum MatchPhase {
+  league
+  group
+  knockout
+}
+
+enum OfficialRole {
+  referee
+  assistant_1
+  assistant_2
+  narrator
+}
+
+enum PlayerPosition {
+  GOL
+  ZAG
+  LAT
+  VOL
+  MEI
+  ATA
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  googleSub    String?  @unique @map("google_sub")
+  role         UserRole @default(user)
+  displayName  String?  @map("display_name")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  players          Player[]
+  auditLogs        AdminAuditLog[]
+  matchHighlights  MatchHighlight[] @relation("HighlightGiver")
+  memberships      UserMembership[]
+
+  @@index([displayName])
+  @@map("users")
+}
+
+model Competition {
+  id                 String            @id @default(uuid()) @db.Uuid
+  slug               String            @unique
+  name               String
+  description        String?
+  logoUrl            String?           @map("logo_url")
+  isActive           Boolean           @default(true) @map("is_active")
+  format             CompetitionFormat @default(league)
+  /// Ordem de desempate: points | wins | goalDifference | goalsFor | headToHead | fairPlay | name
+  tieBreakers        Json              @default("[\"points\",\"wins\",\"goalDifference\",\"goalsFor\",\"headToHead\",\"name\"]") @map("tie_breakers")
+  pointsWin          Int               @default(3) @map("points_win")
+  pointsDraw         Int               @default(1) @map("points_draw")
+  yellowCardLimit    Int               @default(3) @map("yellow_card_limit")
+  redSuspensionGames Int               @default(1) @map("red_suspension_games")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  seasons     Season[]
+  memberships UserMembership[]
+
+  @@map("competitions")
+}
+
+model UserMembership {
+  id            String         @id @default(uuid()) @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  role          MembershipRole
+  competitionId String         @map("competition_id") @db.Uuid
+  teamId        String?        @map("team_id") @db.Uuid
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  team        Team?       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role, competitionId, teamId])
+  @@index([competitionId, role])
+  @@index([userId])
+  @@map("user_memberships")
+}
+
+/// O que cada perfil (MembershipRole) pode fazer no Master / painel do time.
+model RolePermission {
+  id         String         @id @default(uuid()) @db.Uuid
+  role       MembershipRole
+  capability String
+  enabled    Boolean        @default(true)
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  @@unique([role, capability])
+  @@index([role])
+  @@map("role_permissions")
+}
+
+/// Singleton (id fixo) — marca e preferências do site / sistema.
+model SystemSettings {
+  id              String   @id @default("default")
+  siteName        String   @default("SFL") @map("site_name")
+  tagline         String   @default("Plataforma de campeonatos")
+  description     String?  @default("Hub de campeonatos: classificação, calendário, elencos e estatísticas.")
+  logoUrl         String?  @map("logo_url")
+  supportEmail    String?  @map("support_email")
+  footerText      String?  @map("footer_text")
+  masterLabel     String   @default("Master") @map("master_label")
+  /// [{ id, name, imageUrl, linkUrl }]
+  sponsorsJson    Json?    @map("sponsors_json")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+model Team {
+  id              String   @id @default(uuid()) @db.Uuid
+  slug            String   @unique
+  name            String
+  shortName       String   @map("short_name")
+  primaryColor    String   @map("primary_color")
+  secondaryColor  String   @map("secondary_color")
+  logoUrl         String?  @map("logo_url")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  championSeasons Season[]           @relation("SeasonChampion")
+  homeMatches     Match[]            @relation("HomeTeam")
+  awayMatches     Match[]            @relation("AwayTeam")
+  awardedMatches  Match[]            @relation("AwardedMatch")
+  rosters         SeasonRoster[]
+  lineups         MatchLineup[]
+  events          MatchEvent[]
+  ratings         MatchPlayerRating[]
+  highlights      MatchHighlight[]   @relation("HighlightTeam")
+  givenHighlights MatchHighlight[]   @relation("HighlightGivenByTeam")
+  penalties       PenaltyShootout[]
+  memberships     UserMembership[]
+
+  @@index([name])
+  @@map("teams")
+}
+
+model Season {
+  id                 String             @id @default(uuid()) @db.Uuid
+  competitionId      String             @map("competition_id") @db.Uuid
+  name               String
+  year               Int
+  isCurrent          Boolean            @default(false) @map("is_current")
+  championTeamId     String?            @map("champion_team_id") @db.Uuid
+  decidedByPenalties Boolean?           @map("decided_by_penalties")
+  /// Se null, herda o formato do campeonato.
+  format             CompetitionFormat? @map("format")
+  startsAt           DateTime?          @map("starts_at")
+  endsAt             DateTime?          @map("ends_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+
+  competition  Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  championTeam Team?       @relation("SeasonChampion", fields: [championTeamId], references: [id])
+  matches      Match[]
+  rosters      SeasonRoster[]
+  cardResets   CardReset[]
+
+  @@index([competitionId, isCurrent])
+  @@map("seasons")
+}
+
+model Player {
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String
+  nickname  String
+  position  PlayerPosition
+  photoUrl  String?        @map("photo_url")
+  email     String?
+  isActive  Boolean        @default(true) @map("is_active")
+  userId    String?        @map("user_id") @db.Uuid
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  user              User?               @relation(fields: [userId], references: [id])
+  rosters           SeasonRoster[]
+  lineups           MatchLineup[]
+  events            MatchEvent[]        @relation("EventPlayer")
+  assists           MatchEvent[]        @relation("EventAssist")
+  subIns            MatchEvent[]        @relation("EventPlayerIn")
+  ratings           MatchPlayerRating[]
+  highlights        MatchHighlight[]
+  penalties         PenaltyShootout[]
+  cardResets        CardReset[]
+
+  @@index([userId])
+  @@index([email])
+  @@index([nickname])
+  @@index([name])
+  @@map("players")
+}
+
+/// Zera a contagem de cartões a partir desta data (cumprimento de suspensão).
+model CardReset {
+  id            String   @id @default(uuid()) @db.Uuid
+  seasonId      String   @map("season_id") @db.Uuid
+  playerId      String   @map("player_id") @db.Uuid
+  yellowCleared Int      @default(0) @map("yellow_cleared")
+  redCleared    Int      @default(0) @map("red_cleared")
+  reason        String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([seasonId, playerId])
+  @@map("card_resets")
+}
+
+model SeasonRoster {
+  id        String   @id @default(uuid()) @db.Uuid
+  seasonId  String   @map("season_id") @db.Uuid
+  teamId    String?  @map("team_id") @db.Uuid
+  playerId  String   @map("player_id") @db.Uuid
+  number    Int?
+  isCaptain Boolean  @default(false) @map("is_captain")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team   Team?  @relation(fields: [teamId], references: [id])
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, playerId])
+  @@index([seasonId, teamId])
+  @@map("season_rosters")
+}
+
+model Match {
+  id                 String      @id @default(uuid()) @db.Uuid
+  seasonId           String      @map("season_id") @db.Uuid
+  round              Int
+  date               DateTime
+  homeTeamId         String      @map("home_team_id") @db.Uuid
+  awayTeamId         String      @map("away_team_id") @db.Uuid
+  homeScore          Int?        @map("home_score")
+  awayScore          Int?        @map("away_score")
+  status             MatchStatus @default(scheduled)
+  phase              MatchPhase  @default(league)
+  groupName          String?     @map("group_name")
+  knockoutLabel      String?     @map("knockout_label")
+  leg                Int         @default(1)
+  isWalkover         Boolean     @default(false) @map("is_walkover")
+  awardedToTeamId    String?     @map("awarded_to_team_id") @db.Uuid
+  youtubeUrl         String?     @map("youtube_url")
+  venue              String      @default("")
+  homeFormation      String?     @map("home_formation")
+  awayFormation      String?     @map("away_formation")
+  firstHalfDuration  Int?        @map("first_half_duration")
+  secondHalfDuration Int?        @map("second_half_duration")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+
+  season         Season              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  homeTeam       Team                @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam       Team                @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  awardedToTeam  Team?               @relation("AwardedMatch", fields: [awardedToTeamId], references: [id])
+  timer          MatchTimer?
+  events         MatchEvent[]
+  lineups        MatchLineup[]
+  officials      MatchOfficial[]
+  ratings        MatchPlayerRating[]
+  highlights     MatchHighlight[]
+  penalties      PenaltyShootout[]
+
+  @@index([seasonId, round])
+  @@index([seasonId, phase])
+  @@index([status])
+  @@map("matches")
+}
+
+model MatchTimer {
+  matchId       String    @id @map("match_id") @db.Uuid
+  currentHalf   MatchHalf @default(first) @map("current_half")
+  elapsedSeconds Int      @default(0) @map("elapsed_seconds")
+  halfStartedAt DateTime? @map("half_started_at")
+  isRunning     Boolean   @default(false) @map("is_running")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@map("match_timer")
+}
+
+model MatchEvent {
+  id                      String         @id @default(uuid()) @db.Uuid
+  matchId                 String         @map("match_id") @db.Uuid
+  teamId                  String?        @map("team_id") @db.Uuid
+  playerId                String?        @map("player_id") @db.Uuid
+  assistPlayerId          String?        @map("assist_player_id") @db.Uuid
+  playerInId              String?        @map("player_in_id") @db.Uuid
+  type                    MatchEventType
+  elapsedSeconds          Int            @map("elapsed_seconds")
+  description             String?
+  youtubeTimestampSeconds Int?           @map("youtube_timestamp_seconds")
+  createdAt               DateTime       @default(now()) @map("created_at")
+  updatedAt               DateTime       @updatedAt @map("updated_at")
+
+  match        Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team         Team?  @relation(fields: [teamId], references: [id])
+  player       Player? @relation("EventPlayer", fields: [playerId], references: [id])
+  assistPlayer Player? @relation("EventAssist", fields: [assistPlayerId], references: [id])
+  playerIn     Player? @relation("EventPlayerIn", fields: [playerInId], references: [id])
+
+  @@index([matchId])
+  @@map("match_events")
+}
+
+model MatchLineup {
+  id            String       @id @default(uuid()) @db.Uuid
+  matchId       String       @map("match_id") @db.Uuid
+  teamId        String       @map("team_id") @db.Uuid
+  playerId      String       @map("player_id") @db.Uuid
+  shirtNumber   Int          @map("shirt_number")
+  status        LineupStatus
+  positionIndex Int?         @map("position_index")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@unique([matchId, playerId])
+  @@index([matchId, teamId])
+  @@map("match_lineups")
+}
+
+model MatchOfficial {
+  id      String       @id @default(uuid()) @db.Uuid
+  matchId String       @map("match_id") @db.Uuid
+  role    OfficialRole
+  name    String
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, role])
+  @@map("match_officials")
+}
+
+model MatchPlayerRating {
+  id               String   @id @default(uuid()) @db.Uuid
+  matchId          String   @map("match_id") @db.Uuid
+  teamId           String   @map("team_id") @db.Uuid
+  playerId         String   @map("player_id") @db.Uuid
+  rating           Float
+  calculatedRating Float    @map("calculated_rating")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@unique([matchId, playerId])
+  @@map("match_player_ratings")
+}
+
+model MatchHighlight {
+  id            String        @id @default(uuid()) @db.Uuid
+  matchId       String        @map("match_id") @db.Uuid
+  teamId        String        @map("team_id") @db.Uuid
+  playerId      String        @map("player_id") @db.Uuid
+  slot          HighlightSlot
+  givenByTeamId String        @map("given_by_team_id") @db.Uuid
+  givenByUserId String        @map("given_by_user_id") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  match       Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team        Team   @relation("HighlightTeam", fields: [teamId], references: [id])
+  player      Player @relation(fields: [playerId], references: [id])
+  givenByTeam Team   @relation("HighlightGivenByTeam", fields: [givenByTeamId], references: [id])
+  givenByUser User   @relation("HighlightGiver", fields: [givenByUserId], references: [id])
+
+  @@unique([matchId, givenByTeamId, slot])
+  @@map("match_highlights")
+}
+
+model PenaltyShootout {
+  id         String @id @default(uuid()) @db.Uuid
+  matchId    String @map("match_id") @db.Uuid
+  teamId     String @map("team_id") @db.Uuid
+  playerId   String @map("player_id") @db.Uuid
+  scored     Boolean
+  shootOrder Int    @map("shoot_order")
+
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team   Team   @relation(fields: [teamId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@index([matchId])
+  @@map("penalty_shootout")
+}
+
+model AdminAuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  userEmail   String   @map("user_email")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  description String?
+  details     Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([entityType, createdAt])
+  @@index([userEmail])
+  @@map("admin_audit_log")
+}

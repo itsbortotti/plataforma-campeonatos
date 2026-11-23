@@ -1,0 +1,256 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
+  --color-brand-bar: var(--brand-bar);
+  --color-brand-bar-foreground: var(--brand-bar-foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+  --font-heading: var(--font-display);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-sha: #C15622;
+  --color-sha-dark: #010101;
+  --color-tor: #413A42;
+  --color-tor-accent: #F7DE2B;
+  --color-gold: #FBBF24;
+}
+
+/*
+  Paleta SFL:
+  - Azul marca: navy sóbrio (menos saturação que o #1A3694 antigo)
+  - CTA laranja: #C15622
+  Light e dark compartilham a mesma identidade; só o fundo muda.
+*/
+:root {
+  --radius: 0.625rem;
+  --sfl-blue: #1C2F68;
+  --sfl-blue-deep: #15244F;
+  --sfl-blue-soft: #E6EAF3;
+  --sfl-cta: #C15622;
+  --sfl-cta-hover: #A8471C;
+
+  --background: #F4F5F8;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #1C2F68;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E6EAF3;
+  --secondary-foreground: #15244F;
+  --muted: #E6EAF3;
+  --muted-foreground: #5A6578;
+  --accent: #E6EAF3;
+  --accent-foreground: #15244F;
+  --destructive: #DC2626;
+  --border: #D2D8E4;
+  --input: #E6EAF3;
+  --ring: #1C2F68;
+  --cta: #C15622;
+  --cta-foreground: #FFFFFF;
+  --brand-bar: #1C2F68;
+  --brand-bar-foreground: #FFFFFF;
+  --chart-1: #C15622;
+  --chart-2: #1C2F68;
+  --chart-3: #D4A017;
+  --chart-4: #DC2626;
+  --chart-5: #0891B2;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #1C2F68;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E6EAF3;
+  --sidebar-accent-foreground: #15244F;
+  --sidebar-border: #D2D8E4;
+  --sidebar-ring: #1C2F68;
+}
+
+.dark {
+  --background: #0B1220;
+  --foreground: #EEF1F7;
+  --card: #121925;
+  --card-foreground: #EEF1F7;
+  --popover: #121925;
+  --popover-foreground: #EEF1F7;
+  /* Primary no dark: azul acinzentado, sem neon */
+  --primary: #8B9BC7;
+  --primary-foreground: #0B1220;
+  --secondary: #182131;
+  --secondary-foreground: #D8DEEA;
+  --muted: #182131;
+  --muted-foreground: #97A3B8;
+  --accent: #182131;
+  --accent-foreground: #D8DEEA;
+  --destructive: #F87171;
+  --border: #243044;
+  --input: #182131;
+  --ring: #8B9BC7;
+  --cta: #E06A35;
+  --cta-foreground: #FFFFFF;
+  /* Header/footer: mesmo navy sóbrio nos dois temas */
+  --brand-bar: #15244F;
+  --brand-bar-foreground: #FFFFFF;
+  --chart-1: #E06A35;
+  --chart-2: #8B9BC7;
+  --chart-3: #FBBF24;
+  --chart-4: #F87171;
+  --chart-5: #22D3EE;
+  --sidebar: #0B1220;
+  --sidebar-foreground: #EEF1F7;
+  --sidebar-primary: #8B9BC7;
+  --sidebar-primary-foreground: #0B1220;
+  --sidebar-accent: #182131;
+  --sidebar-accent-foreground: #D8DEEA;
+  --sidebar-border: #243044;
+  --sidebar-ring: #8B9BC7;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@keyframes sfl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sfl-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sfl-kenburns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.02em;
+  }
+
+  .animate-sfl-rise {
+    animation: sfl-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-sfl-fade {
+    animation: sfl-fade 0.9s ease both;
+  }
+
+  .animate-sfl-kenburns {
+    animation: sfl-kenburns 18s ease-out forwards;
+  }
+
+  .hero-split {
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, transparent) 0%, transparent 40%),
+      linear-gradient(225deg, color-mix(in srgb, var(--primary) 6%, transparent) 0%, transparent 40%),
+      var(--background);
+  }
+
+  .noise {
+    position: relative;
+  }
+  .noise::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: inherit;
+  }
+  .noise > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .score-glow {
+    text-shadow: 0 0 40px color-mix(in srgb, var(--cta) 40%, transparent),
+      0 0 80px color-mix(in srgb, var(--cta) 20%, transparent);
+  }
+
+  .accent-bar-sha {
+    border-left: 3px solid var(--cta);
+  }
+  .accent-bar-tor {
+    border-left: 3px solid #F7DE2B;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sfl-rise,
+  .animate-sfl-fade,
+  .animate-sfl-kenburns {
+    animation: none !important;
+  }
+}
