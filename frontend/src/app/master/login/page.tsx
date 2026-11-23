@@ -19,11 +19,7 @@ export default function MasterLoginPage() {
     setError(null);
     const emailTrim = email.trim();
     if (!emailTrim) {
-      setError("Digite o e-mail da conta (ex: danilo@sfl.com).");
-      return;
-    }
-    if (!emailTrim.includes("@")) {
-      setError("Use o e-mail completo com @ (ex: danilo@sfl.com), não só o nome.");
+      setError("Digite o usuário Master ou o e-mail da conta.");
       return;
     }
     if (!password) {
@@ -102,15 +98,15 @@ export default function MasterLoginPage() {
 
           <div className="grid gap-2">
             <label htmlFor="master-email" className="text-sm font-medium">
-              E-mail
+              Usuário ou e-mail
             </label>
             <Input
               id="master-email"
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
-              placeholder="ex: danilo@sfl.com"
+              placeholder="master ou danilo@sfl.com"
               className="h-12 rounded-xl text-base"
               required
             />
