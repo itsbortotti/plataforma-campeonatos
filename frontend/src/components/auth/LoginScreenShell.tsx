@@ -17,8 +17,8 @@ type Props = {
 };
 
 /**
- * Layout split: formulário + hero de marca (GarageFlow / Pisa).
- * Safe-area para iPhone 15 / Dynamic Island.
+ * Layout split: formulário + hero de marca.
+ * Safe-area para iPhone / Dynamic Island (viewport-fit=cover).
  */
 export function LoginScreenShell({
   brandName,
@@ -30,11 +30,37 @@ export function LoginScreenShell({
   const brand = useBrand();
   const logoSrc = useBrandLogoSrc();
 
+  const brandLink = (
+    <Link
+      href={brandTo}
+      className="flex items-center gap-2.5 font-semibold text-foreground"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={logoSrc}
+        alt=""
+        className="h-10 w-10 shrink-0 object-contain rounded-xl ring-1 ring-border"
+        width={40}
+        height={40}
+        suppressHydrationWarning
+      />
+      <span className="font-display text-xl tracking-wide">{brandName}</span>
+    </Link>
+  );
+
   return (
     <div className="min-h-[100svh] w-full overflow-x-hidden bg-background text-foreground">
-      <div className="grid min-h-[100svh] w-full grid-cols-1 lg:grid-cols-2">
+      {/* Mobile: cabeçalho abaixo do notch (não fica sob a Dynamic Island) */}
+      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-md lg:hidden pt-[env(safe-area-inset-top)]">
+        <div className="flex h-14 items-center justify-between gap-3 px-5">
+          {brandLink}
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <div className="grid min-h-[calc(100svh-env(safe-area-inset-top))] w-full grid-cols-1 lg:grid-cols-2 lg:min-h-[100svh]">
         {/* Mobile hero strip */}
-        <div className="relative h-44 w-full shrink-0 overflow-hidden sm:h-52 lg:hidden pt-[env(safe-area-inset-top)]">
+        <div className="relative h-40 w-full shrink-0 overflow-hidden sm:h-48 lg:hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={HERO_SRC}
@@ -50,24 +76,8 @@ export function LoginScreenShell({
         </div>
 
         <div className="relative flex min-h-0 flex-col gap-5 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-8 sm:py-8 lg:p-12">
-          <div className="flex shrink-0 items-center justify-between gap-3">
-            <Link
-              href={brandTo}
-              className="flex items-center gap-2.5 font-semibold text-foreground"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={logoSrc}
-                alt=""
-                className="h-10 w-10 shrink-0 object-contain rounded-xl ring-1 ring-border"
-                width={40}
-                height={40}
-                suppressHydrationWarning
-              />
-              <span className="font-display text-xl tracking-wide">
-                {brandName}
-              </span>
-            </Link>
+          <div className="hidden shrink-0 items-center justify-between gap-3 lg:flex">
+            {brandLink}
             <ThemeToggle />
           </div>
 
