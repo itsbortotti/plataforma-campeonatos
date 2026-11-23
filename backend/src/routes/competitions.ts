@@ -394,11 +394,7 @@ export async function competitionRoutes(app: FastifyInstance) {
     }
     if (!isOwner) {
       const ok = await listMembershipsForUser(actor.id).then((ms) =>
-        ms.some(
-          (m) =>
-            m.competitionId === row.competitionId &&
-            (m.role === "owner" || m.role === "league_admin"),
-        ),
+        ms.some((m) => m.role === "owner" || m.role === "league_admin"),
       );
       if (!ok) return reply.code(403).send({ error: "Sem permissão" });
     }
