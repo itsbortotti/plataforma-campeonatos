@@ -22,17 +22,35 @@ function TeamLoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    const emailTrim = email.trim();
+    if (!emailTrim) {
+      setError("Digite o e-mail da conta (ex: nome@dominio.com).");
+      return;
+    }
+    if (!emailTrim.includes("@")) {
+      setError("Use o e-mail completo com @, não só o nome.");
+      return;
+    }
+    if (!password) {
+      setError("Digite a senha.");
+      return;
+    }
+    setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: emailTrim, password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Credenciais inválidas");
+      if (!res.ok) {
+        throw new Error(
+          data.error ||
+            "E-mail ou senha incorretos. Confira e tente de novo.",
+        );
+      }
       if (data.token) localStorage.setItem("sfl_token", data.token);
 
       const meRes = await fetch(`${API_URL}/api/auth/me`, {
@@ -64,7 +82,7 @@ function TeamLoginForm() {
       }
       window.location.assign("/capitao");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro");
+      setError(err instanceof Error ? err.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
     }
@@ -102,6 +120,7 @@ function TeamLoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
+            placeholder="ex: nome@dominio.com"
             className="h-12 rounded-xl text-base"
             required
           />

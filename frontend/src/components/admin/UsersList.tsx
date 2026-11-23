@@ -104,6 +104,11 @@ export function UsersList({
   const [editName, setEditName] = useState("");
   const [editPassword, setEditPassword] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  function isValidEmail(value: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
 
   const [createForm, setCreateForm] = useState<CreateForm>({
     email: "",
@@ -123,6 +128,7 @@ export function UsersList({
   }
 
   function openCreate() {
+    setFormError(null);
     setCreateForm({
       email: "",
       displayName: "",
@@ -134,6 +140,7 @@ export function UsersList({
   }
 
   function openGrant(user: UserRow) {
+    setFormError(null);
     setGrantUser(user);
     setGrantForm({
       role: "team_staff",
@@ -142,28 +149,39 @@ export function UsersList({
   }
 
   function openEdit(user: UserRow) {
+    setFormError(null);
     setEditing(user);
     setEditName(user.displayName);
     setEditPassword("");
   }
 
   function handleCreate() {
-    if (!createForm.email.trim() || !createForm.password.trim()) {
-      toast.error("Email e senha são obrigatórios.");
+    const email = createForm.email.trim();
+    if (!email) {
+      setFormError("Digite o e-mail do usuário (ex: danilo@sfl.com).");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setFormError("O e-mail precisa ser válido, com @ (ex: danilo@sfl.com).");
+      return;
+    }
+    if (!createForm.password.trim()) {
+      setFormError("Digite uma senha para o usuário.");
       return;
     }
     if (createForm.password.length < 6) {
-      toast.error("Senha deve ter ao menos 6 caracteres.");
+      setFormError("A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
     if (needsTeam(createForm.role) && !createForm.teamId) {
-      toast.error("Escolha o time deste perfil.");
+      setFormError("Escolha o time deste perfil.");
       return;
     }
 
+    setFormError(null);
     startTransition(async () => {
       const result = await createUserWithProfile({
-        email: createForm.email.trim(),
+        email,
         password: createForm.password,
         displayName: createForm.displayName.trim() || undefined,
         role: createForm.role,
@@ -173,7 +191,9 @@ export function UsersList({
         toast.success("Usuário criado com perfil");
         setCreateOpen(false);
       } else {
-        toast.error(result.error ?? "Erro ao criar");
+        const msg = result.error ?? "Não foi possível criar o usuário.";
+        setFormError(msg);
+        toast.error(msg);
       }
     });
   }
@@ -181,9 +201,10 @@ export function UsersList({
   function handleGrant() {
     if (!grantUser) return;
     if (needsTeam(grantForm.role) && !grantForm.teamId) {
-      toast.error("Escolha o time deste perfil.");
+      setFormError("Escolha o time deste perfil.");
       return;
     }
+    setFormError(null);
     startTransition(async () => {
       const result = await grantMembership({
         userId: grantUser.id,
@@ -194,7 +215,9 @@ export function UsersList({
         toast.success("Perfil atribuído");
         setGrantUser(null);
       } else {
-        toast.error(result.error ?? "Erro");
+        const msg = result.error ?? "Não foi possível atribuir o perfil.";
+        setFormError(msg);
+        toast.error(msg);
       }
     });
   }
@@ -202,9 +225,10 @@ export function UsersList({
   function handleEditSave() {
     if (!editing) return;
     if (editPassword && editPassword.length < 6) {
-      toast.error("Senha deve ter ao menos 6 caracteres.");
+      setFormError("A nova senha precisa ter pelo menos 6 caracteres.");
       return;
     }
+    setFormError(null);
     startTransition(async () => {
       const result = await updateUser(editing.id, {
         displayName: editName.trim() || null,
@@ -214,7 +238,9 @@ export function UsersList({
         toast.success("Usuário atualizado");
         setEditing(null);
       } else {
-        toast.error(result.error ?? "Erro");
+        const msg = result.error ?? "Não foi possível salvar.";
+        setFormError(msg);
+        toast.error(msg);
       }
     });
   }
@@ -402,22 +428,40 @@ export function UsersList({
         pageSize={pageSize}
       />
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          setCreateOpen(o);
+          if (!o) setFormError(null);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Novo usuário</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {formError ? (
+              <div
+                className="rounded-lg border border-red-300/80 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200"
+                role="alert"
+              >
+                {formError}
+              </div>
+            ) : null}
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
+                placeholder="ex: danilo@sfl.com"
                 value={createForm.email}
                 onChange={(e) =>
                   setCreateForm((f) => ({ ...f, email: e.target.value }))
                 }
               />
+              <p className="text-[11px] text-muted-foreground">
+                Use e-mail completo com @ — não só o nome.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="displayName">Nome</Label>
@@ -439,6 +483,9 @@ export function UsersList({
                   setCreateForm((f) => ({ ...f, password: e.target.value }))
                 }
               />
+              <p className="text-[11px] text-muted-foreground">
+                Mínimo de 6 caracteres.
+              </p>
             </div>
             <ProfileFields
               role={createForm.role}
@@ -464,7 +511,12 @@ export function UsersList({
 
       <Dialog
         open={grantUser !== null}
-        onOpenChange={(o) => !o && !pending && setGrantUser(null)}
+        onOpenChange={(o) => {
+          if (!o && !pending) {
+            setGrantUser(null);
+            setFormError(null);
+          }
+        }}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -476,6 +528,14 @@ export function UsersList({
             </p>
           ) : null}
           <div className="space-y-3">
+            {formError ? (
+              <div
+                className="rounded-lg border border-red-300/80 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200"
+                role="alert"
+              >
+                {formError}
+              </div>
+            ) : null}
             <ProfileFields
               role={grantForm.role}
               teamId={grantForm.teamId}
@@ -500,15 +560,28 @@ export function UsersList({
 
       <Dialog
         open={editing !== null}
-        onOpenChange={(o) => !o && !pending && setEditing(null)}
+        onOpenChange={(o) => {
+          if (!o && !pending) {
+            setEditing(null);
+            setFormError(null);
+          }
+        }}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Editar usuário</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {formError ? (
+              <div
+                className="rounded-lg border border-red-300/80 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200"
+                role="alert"
+              >
+                {formError}
+              </div>
+            ) : null}
             <div className="space-y-1.5">
-              <Label>Email</Label>
+              <Label>E-mail</Label>
               <Input value={editing?.email ?? ""} disabled />
             </div>
             <div className="space-y-1.5">
@@ -526,6 +599,9 @@ export function UsersList({
                 onChange={(e) => setEditPassword(e.target.value)}
                 placeholder="Deixe em branco para manter"
               />
+              <p className="text-[11px] text-muted-foreground">
+                Se preencher, use no mínimo 6 caracteres.
+              </p>
             </div>
           </div>
           <DialogFooter>

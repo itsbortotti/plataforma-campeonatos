@@ -247,17 +247,39 @@ export async function competitionRoutes(app: FastifyInstance) {
     const actor = await requireUser(request, reply);
     if (!actor) return;
 
-    const body = z
+    const parsed = z
       .object({
         userId: z.string().uuid().optional(),
-        email: z.string().email().optional(),
-        role: z.nativeEnum(MembershipRole),
+        email: z
+          .string()
+          .trim()
+          .email("Digite um e-mail válido, com @ (ex: nome@dominio.com).")
+          .optional(),
+        role: z.nativeEnum(MembershipRole, {
+          errorMap: () => ({ message: "Escolha um perfil de acesso." }),
+        }),
         competitionId: z.string().uuid().optional(),
         teamId: z.string().uuid().nullable().optional(),
-        password: z.string().min(6).optional(),
+        password: z
+          .string()
+          .min(6, "A senha precisa ter pelo menos 6 caracteres.")
+          .optional(),
         displayName: z.string().optional(),
       })
-      .parse(request.body);
+      .safeParse(request.body);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      return reply
+        .code(400)
+        .send({ error: first?.message || "Dados inválidos. Confira o formulário." });
+    }
+    const body = parsed.data;
+
+    if (!body.userId && !body.email) {
+      return reply
+        .code(400)
+        .send({ error: "Informe o e-mail do usuário (ex: nome@dominio.com)." });
+    }
 
     if (
       (body.role === "team_staff" || body.role === "captain") &&
@@ -265,7 +287,7 @@ export async function competitionRoutes(app: FastifyInstance) {
     ) {
       return reply
         .code(400)
-        .send({ error: "teamId obrigatório para staff/capitão" });
+        .send({ error: "Escolha o time para este perfil." });
     }
     if (
       (body.role === "owner" || body.role === "league_admin") &&
@@ -273,7 +295,7 @@ export async function competitionRoutes(app: FastifyInstance) {
     ) {
       return reply
         .code(400)
-        .send({ error: "owner/league_admin não levam teamId" });
+        .send({ error: "Perfis da liga não usam time." });
     }
 
     let competitionId = body.competitionId;
@@ -325,9 +347,9 @@ export async function competitionRoutes(app: FastifyInstance) {
         userId = existing.id;
       } else {
         if (!body.password) {
-          return reply
-            .code(400)
-            .send({ error: "Senha obrigatória para criar usuário" });
+          return reply.code(400).send({
+            error: "Digite uma senha com pelo menos 6 caracteres para criar o usuário.",
+          });
         }
         const bcrypt = await import("bcryptjs");
         const passwordHash = await bcrypt.hash(body.password, 10);

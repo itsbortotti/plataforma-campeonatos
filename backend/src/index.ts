@@ -16,6 +16,7 @@ import { captainRoutes } from "./routes/captain.js";
 import { storageRoutes } from "./routes/storage.js";
 import { cronRoutes } from "./routes/cron.js";
 import { competitionRoutes } from "./routes/competitions.js";
+import { formatZodError, isZodError } from "./core/zod-errors.js";
 
 const app = Fastify({ logger: true });
 
@@ -55,15 +56,24 @@ await app.register(cronRoutes);
 
 app.setErrorHandler((err, _request, reply) => {
   app.log.error(err);
-  if (err && typeof err === "object" && "issues" in err) {
-    return reply.code(400).send({ error: "Validação inválida", details: err });
+  if (isZodError(err)) {
+    return reply.code(400).send({ error: formatZodError(err) });
   }
   const message = err instanceof Error ? err.message : "Erro interno";
-  const status =
-    message.includes("Unique constraint") || message.includes("Foreign key")
-      ? 400
-      : 500;
-  return reply.code(status).send({ error: message });
+  if (message.includes("Unique constraint")) {
+    if (message.includes("email")) {
+      return reply
+        .code(400)
+        .send({ error: "Já existe um usuário com este e-mail." });
+    }
+    return reply.code(400).send({ error: "Este registro já existe." });
+  }
+  if (message.includes("Foreign key")) {
+    return reply
+      .code(400)
+      .send({ error: "Não foi possível salvar: dado relacionado inválido." });
+  }
+  return reply.code(500).send({ error: "Erro interno. Tente de novo." });
 });
 
 await app.listen({ port: config.port, host: "0.0.0.0" });

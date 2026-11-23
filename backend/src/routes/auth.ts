@@ -14,21 +14,34 @@ import { config } from "../core/config.js";
 
 export async function authRoutes(app: FastifyInstance) {
   app.post("/api/auth/login", async (request, reply) => {
-    const body = z
-      .object({
-        email: z.string().min(1),
-        password: z.string().min(1),
-      })
-      .parse(request.body);
+    const raw = (request.body ?? {}) as { email?: unknown; password?: unknown };
+    const email =
+      typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
+    const password = typeof raw.password === "string" ? raw.password : "";
 
-    const user = await prisma.user.findUnique({
-      where: { email: body.email.trim().toLowerCase() },
-    });
-    if (!user?.passwordHash) {
-      return reply.code(401).send({ error: "Credenciais inválidas" });
+    if (!email) {
+      return reply
+        .code(400)
+        .send({ error: "Digite o e-mail da conta (ex: nome@dominio.com)." });
     }
-    const ok = await bcrypt.compare(body.password, user.passwordHash);
-    if (!ok) return reply.code(401).send({ error: "Credenciais inválidas" });
+    if (!password) {
+      return reply.code(400).send({ error: "Digite a senha." });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user?.passwordHash) {
+      return reply.code(401).send({
+        error:
+          "E-mail ou senha incorretos. Use o e-mail completo cadastrado (ex: nome@dominio.com).",
+      });
+    }
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      return reply.code(401).send({
+        error:
+          "E-mail ou senha incorretos. Confira a senha ou peça ao Master para redefinir.",
+      });
+    }
 
     const token = await reply.jwtSign({
       sub: user.id,
