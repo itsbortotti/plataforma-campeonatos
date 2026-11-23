@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
       { hostname: "*.onrender.com" },
       { hostname: "sflcampeonato.com.br" },
       { hostname: "www.sflcampeonato.com.br" },
+      { hostname: "*.supabase.co" },
     ],
   },
   async rewrites() {

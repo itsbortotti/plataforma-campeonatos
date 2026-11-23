@@ -69,6 +69,8 @@ async function fetchAll<T extends Record<string, unknown>>(
 
 async function downloadPhoto(photoUrl: string, playerId: string): Promise<string | null> {
   if (!photoUrl.includes("supabase.co/storage")) return photoUrl;
+  // Keep CDN URLs when importing into a remote DB without local disk sync.
+  if (process.env.IMPORT_KEEP_REMOTE_PHOTOS === "true") return photoUrl;
   try {
     const res = await fetch(photoUrl);
     if (!res.ok || !res.body) return photoUrl;
