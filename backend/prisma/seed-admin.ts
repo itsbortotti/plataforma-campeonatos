@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { assertSeedAdminPassword } from "./password-policy.ts";
 
 const prisma = new PrismaClient();
 
@@ -9,15 +10,11 @@ const LOGIN_RAW = (process.env.SEED_ADMIN_USER || "master").trim().toLowerCase()
 const LOGIN = LOGIN_RAW.includes("@")
   ? LOGIN_RAW
   : `${LOGIN_RAW}@sfl.local`;
-const PASSWORD = process.env.SEED_ADMIN_PASSWORD || "";
+const PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "";
 const LEGACY_EMAILS = ["admin@sfl.local", LOGIN_RAW, "master"];
 
 async function main() {
-  if (!PASSWORD) {
-    throw new Error(
-      "Missing SEED_ADMIN_PASSWORD — set it in the environment (never commit the value).",
-    );
-  }
+  assertSeedAdminPassword(PASSWORD, LOGIN_RAW);
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
 
   const competition = await prisma.competition.upsert({

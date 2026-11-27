@@ -14,7 +14,7 @@ import {
 import { requireAdmin } from "../core/auth.js";
 import { prisma } from "../core/prisma.js";
 import { writeAudit } from "../services/audit.js";
-import { mapMatch, mapPlayer, mapTeam } from "../services/mappers.js";
+import { mapMatch, mapPlayerAdmin, mapTeam } from "../services/mappers.js";
 import { liveBus } from "../services/live-bus.js";
 import {
   generateKnockoutBracket,
@@ -249,7 +249,7 @@ export async function adminRoutes(app: FastifyInstance) {
         include,
         orderBy: { nickname: "asc" },
       });
-      return players.map((p) => ({ ...mapPlayer(p), user: p.user }));
+      return players.map((p) => ({ ...mapPlayerAdmin(p), user: p.user }));
     }
     const { skip, take } = skipTake(page, pageSize);
     const [players, total] = await Promise.all([
@@ -263,7 +263,7 @@ export async function adminRoutes(app: FastifyInstance) {
       prisma.player.count({ where }),
     ]);
     return paginatedResult(
-      players.map((p) => ({ ...mapPlayer(p), user: p.user })),
+      players.map((p) => ({ ...mapPlayerAdmin(p), user: p.user })),
       total,
       page,
       pageSize,
@@ -312,7 +312,7 @@ export async function adminRoutes(app: FastifyInstance) {
       description: `Criou jogador ${player.nickname}`,
       details: body,
     });
-    return mapPlayer(player);
+    return mapPlayerAdmin(player);
   });
 
   app.patch("/api/admin/players/:id", async (request) => {
@@ -360,7 +360,7 @@ export async function adminRoutes(app: FastifyInstance) {
       description: `Atualizou jogador ${player.nickname}`,
       details: body,
     });
-    return mapPlayer(player);
+    return mapPlayerAdmin(player);
   });
 
   app.delete("/api/admin/players/:id", async (request) => {
@@ -638,6 +638,43 @@ export async function adminRoutes(app: FastifyInstance) {
       description: "Removeu partida",
     });
     return { ok: true };
+  });
+
+  app.post("/api/admin/matches/:id/postpone", async (request, reply) => {
+    const admin = (request as unknown as { adminUser: { id: string; email: string } }).adminUser;
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const body = z
+      .object({
+        reason: z.string().trim().min(3).max(500),
+      })
+      .parse(request.body);
+
+    const existing = await prisma.match.findUnique({ where: { id } });
+    if (!existing) {
+      return reply.code(404).send({ error: "Partida não encontrada" });
+    }
+    if (existing.status !== "scheduled" && existing.status !== "lineups_set") {
+      return reply.code(400).send({
+        error: "Só dá para adiar uma partida que ainda não começou.",
+      });
+    }
+
+    const match = await prisma.match.update({
+      where: { id },
+      data: { status: "postponed" },
+      include: teamInclude,
+    });
+    await writeAudit({
+      userId: admin.id,
+      userEmail: admin.email,
+      action: "update",
+      entityType: "match",
+      entityId: id,
+      description: `Adiou a partida da rodada ${match.round}: ${body.reason}`,
+      details: { status: "postponed", reason: body.reason },
+    });
+    liveBus.publish(id, "match_status", { status: "postponed" });
+    return mapMatch(match);
   });
 
   // ── Lineups / officials / ratings (admin) ──

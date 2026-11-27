@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Plus, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, CalendarClock, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MatchDialog } from "./MatchDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { deleteMatch } from "@/app/admin/partidas/actions";
+import { postponeMatch } from "@/app/admin/partidas/actions";
 import type { MatchWithTeams, Team } from "@/lib/queries";
 import { formatDate as formatDateBase } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
@@ -125,7 +125,11 @@ function matchesFilter(match: MatchWithTeams, filter: FilterId) {
   if (filter === "live")
     return match.status === "live" || match.status === "halftime";
   if (filter === "upcoming")
-    return match.status === "scheduled" || match.status === "lineups_set";
+    return (
+      match.status === "scheduled" ||
+      match.status === "lineups_set" ||
+      match.status === "postponed"
+    );
   if (filter === "finished")
     return (
       match.status === "finished" ||
@@ -144,9 +148,11 @@ interface Props {
 export function MatchesTable({ matches, teams, seasonId }: Props) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<MatchWithTeams | null>(null);
-  const [deleting, startDelete] = useTransition();
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [postponeTarget, setPostponeTarget] = useState<MatchWithTeams | null>(
+    null,
+  );
+  const [postponing, startPostpone] = useTransition();
+  const [postponeError, setPostponeError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterId>("upcoming");
 
   const filtered = useMemo(() => {
@@ -174,17 +180,17 @@ export function MatchesTable({ matches, teams, seasonId }: Props) {
     return Math.max(...matches.map((m) => m.round)) + 1;
   }, [matches]);
 
-  function handleDeleteConfirm(reason: string) {
-    if (!deleteTarget) return;
-    startDelete(async () => {
-      const result = await deleteMatch(deleteTarget.id, reason);
+  function handlePostponeConfirm(reason: string) {
+    if (!postponeTarget) return;
+    startPostpone(async () => {
+      const result = await postponeMatch(postponeTarget.id, reason);
       if (result.success) {
-        toast.success("Partida excluída");
-        setDeleteTarget(null);
-        setDeleteError(null);
+        toast.success("Partida adiada. Ela continua no calendário.");
+        setPostponeTarget(null);
+        setPostponeError(null);
       } else {
-        toast.error(result.error ?? "Erro ao excluir partida");
-        setDeleteError(result.error);
+        toast.error(result.error ?? "Erro ao adiar partida");
+        setPostponeError(result.error);
       }
     });
   }
@@ -297,7 +303,8 @@ export function MatchesTable({ matches, teams, seasonId }: Props) {
                       >
                         {action.label}
                       </Link>
-                      {match.status === "scheduled" ? (
+                      {match.status === "scheduled" ||
+                      match.status === "lineups_set" ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger
                             render={(triggerProps) => (
@@ -314,14 +321,13 @@ export function MatchesTable({ matches, teams, seasonId }: Props) {
                           />
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
                               onClick={() => {
-                                setDeleteError(null);
-                                setDeleteTarget(match);
+                                setPostponeError(null);
+                                setPostponeTarget(match);
                               }}
                             >
-                              <Trash2 className="h-3.5 w-3.5 mr-2" />
-                              Excluir
+                              <CalendarClock className="h-3.5 w-3.5 mr-2" />
+                              Adiar
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -345,19 +351,20 @@ export function MatchesTable({ matches, teams, seasonId }: Props) {
       />
 
       <ConfirmDialog
-        open={deleteTarget !== null}
+        open={postponeTarget !== null}
         onOpenChange={(v) => {
           if (!v) {
-            setDeleteTarget(null);
-            setDeleteError(null);
+            setPostponeTarget(null);
+            setPostponeError(null);
           }
         }}
-        title={`Excluir partida da rodada ${deleteTarget?.round ?? ""}?`}
-        description={`Tem certeza que deseja excluir a partida ${deleteTarget?.homeTeam.shortName ?? ""} x ${deleteTarget?.awayTeam.shortName ?? ""}? Esta ação não pode ser desfeita.`}
-        confirmLabel="Excluir partida"
-        onConfirm={handleDeleteConfirm}
-        loading={deleting}
-        error={deleteError}
+        title={`Adiar partida da rodada ${postponeTarget?.round ?? ""}?`}
+        description={`A partida ${postponeTarget?.homeTeam.shortName ?? ""} x ${postponeTarget?.awayTeam.shortName ?? ""} continua no calendário com o selo Adiado. O histórico da rodada não é apagado.`}
+        confirmLabel="Adiar partida"
+        variant="default"
+        onConfirm={handlePostponeConfirm}
+        loading={postponing}
+        error={postponeError}
       />
     </>
   );

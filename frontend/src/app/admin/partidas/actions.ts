@@ -89,6 +89,20 @@ export async function generateFixtures(input: {
   }
 }
 
+export async function postponeMatch(id: string, reason: string) {
+  try {
+    await apiPost(`/api/admin/matches/${id}/postpone`, { reason });
+    revalidatePath("/admin/partidas");
+    revalidatePath("/", "layout");
+    return { success: true as const };
+  } catch (e) {
+    return {
+      success: false as const,
+      error: e instanceof Error ? e.message : "Erro",
+    };
+  }
+}
+
 export async function deleteMatch(id: string, _reason?: string) {
   try {
     await apiDelete(`/api/admin/matches/${id}`);

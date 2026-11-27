@@ -55,6 +55,9 @@ services:
         value: "true"
       - key: SEED_ADMIN_USER
         value: master
+      # Senha do Master. Defina no painel do Render (não neste arquivo).
+      # A senha antiga vazou no histórico do Git: troque o valor e redeploy o sfl-api.
+      # Mínimo 12 caracteres, com letras e números. O seed falha se estiver vazia ou fraca.
       - key: SEED_ADMIN_PASSWORD
         sync: false
 
