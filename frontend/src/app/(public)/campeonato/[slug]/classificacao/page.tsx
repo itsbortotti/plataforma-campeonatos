@@ -14,6 +14,23 @@ import { StandingsTable } from "@/components/standings/StandingsTable";
 import { PlayerStatsList } from "@/components/standings/PlayerStatsList";
 import { SeasonEndBanner } from "@/components/standings/SeasonEndBanner";
 import { SeasonRealtimeRefresh } from "@/components/SeasonRealtimeRefresh";
+import { pageMetadata } from "@/lib/seo";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const competition = await getCompetitionBySlug(slug);
+  const name = competition?.name ?? "Campeonato";
+  return pageMetadata({
+    title: `Classificação · ${name}`,
+    description: `Tabela de pontos, artilharia e assistências de ${name}.`,
+    path: `/campeonato/${slug}/classificacao`,
+    image: `/og/classificacao/${slug}`,
+  });
+}
 
 const TIE_BREAKER_LABEL: Record<string, string> = {
   points: "pontos",

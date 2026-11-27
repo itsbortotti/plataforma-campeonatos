@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import {
   ShieldCheck,
   TrendingUp,
@@ -26,11 +26,12 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-export const metadata: Metadata = {
-  title: "Como funciona o Rating | SFL",
+export const metadata = pageMetadata({
+  title: "Como funciona o rating",
   description:
     "Entenda como as notas dos jogadores da SFL são calculadas a cada partida.",
-};
+  path: "/rating",
+});
 
 const ratingScale = [
   { value: "10", bg: "bg-blue-600", label: "Perfeito" },

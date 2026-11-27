@@ -20,11 +20,11 @@ export function HomeStandingsList({ seasonId, initialStandings }: Props) {
         return (
           <div
             key={row.teamId}
-            className="flex items-center justify-between rounded-lg bg-card border border-border/40 px-4 py-3.5 transition-colors"
+            className="flex items-center justify-between gap-2 rounded-lg bg-card border border-border/40 px-3 py-3 sm:px-4 sm:py-3.5 transition-colors"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
               <span
-                className={`text-sm font-black w-5 text-center ${isLeader ? "text-foreground" : "text-muted-foreground"}`}
+                className={`text-sm font-black w-5 shrink-0 text-center ${isLeader ? "text-foreground" : "text-muted-foreground"}`}
               >
                 {idx + 1}
               </span>
@@ -34,9 +34,12 @@ export function HomeStandingsList({ seasonId, initialStandings }: Props) {
                 primaryColor={team.primaryColor}
                 logoUrl={team.logoUrl}
               />
-              <span className="font-bold">{team.name}</span>
+              <span className="truncate font-bold text-sm">
+                <span className="sm:hidden">{team.shortName}</span>
+                <span className="hidden sm:inline">{team.name}</span>
+              </span>
             </div>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex shrink-0 items-center gap-3 text-sm sm:gap-4">
               <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
                 <span>{row.won}V</span>
                 <span>{row.drawn}E</span>

@@ -8,8 +8,12 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { apiGet } from "@/lib/api-server";
 import { DEFAULT_BRAND, type SystemBrand } from "@/lib/brand";
+import { SITE_URL } from "@/lib/seo";
 
-/** Avoid build-time prerender against API that is not up during Docker build. */
+/**
+ * O layout continua dinâmico para o build Docker não depender da API no ar.
+ * Leituras públicas anônimas usam revalidate/tags em `api.ts`; súmula e admin não.
+ */
 export const dynamic = "force-dynamic";
 
 const display = Bebas_Neue({
@@ -46,9 +50,30 @@ export const viewport: Viewport = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await loadBrand();
+  const title = `${brand.siteName} — ${brand.tagline}`;
+  const description = brand.description ?? brand.tagline;
   return {
-    title: `${brand.siteName} — ${brand.tagline}`,
-    description: brand.description ?? brand.tagline,
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: title,
+      template: `%s · ${brand.siteName}`,
+    },
+    description,
+    applicationName: brand.siteName,
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      locale: "pt_BR",
+      url: "/",
+      siteName: brand.siteName,
+      title,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
     appleWebApp: {
       capable: true,
       statusBarStyle: "black-translucent",

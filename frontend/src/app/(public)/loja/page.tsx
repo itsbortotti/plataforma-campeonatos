@@ -1,4 +1,11 @@
 import { Store } from "lucide-react";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+  title: "Loja",
+  description: "Produtos oficiais da SFL e dos times. Em breve.",
+  path: "/loja",
+});
 
 export default function LojaPage() {
   return (

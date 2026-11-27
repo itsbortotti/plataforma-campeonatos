@@ -1,6 +1,14 @@
 import { redirect } from "next/navigation";
 import { apiGet } from "@/lib/api-server";
+import { pageMetadata } from "@/lib/seo";
 import { ProfileClient } from "./ProfileClient";
+
+export const metadata = pageMetadata({
+  title: "Meu perfil",
+  description: "Área do jogador logado na SFL.",
+  path: "/perfil",
+  noIndex: true,
+});
 
 type MeResponse = {
   user: {

@@ -1,4 +1,5 @@
 import { ApiError, friendlyApiMessage } from "@/lib/api-error";
+import { cachePolicyFor, PUBLIC_CACHE_TAG } from "@/lib/public-cache";
 
 /** Browser uses same-origin `/api` (rewritten to backend). Server hits backend directly. */
 export const API_URL =
@@ -8,7 +9,7 @@ export const API_URL =
 
 type ApiOptions = RequestInit;
 
-async function buildHeaders(init?: RequestInit) {
+async function buildHeaders(init?: RequestInit, includeCookie = true) {
   const headers = new Headers(init?.headers);
   if (
     !headers.has("Content-Type") &&
@@ -18,7 +19,8 @@ async function buildHeaders(init?: RequestInit) {
     headers.set("Content-Type", "application/json");
   }
   // Server components precisam encaminhar o cookie de sessão (admin/capitão).
-  if (typeof window === "undefined" && !headers.has("cookie")) {
+  // Leituras públicas em cache não levam cookie — senão a resposta vira por usuário.
+  if (includeCookie && typeof window === "undefined" && !headers.has("cookie")) {
     try {
       const { cookies } = await import("next/headers");
       const jar = await cookies();
@@ -34,19 +36,47 @@ async function buildHeaders(init?: RequestInit) {
   return headers;
 }
 
+/** Anônimo = pode usar o cache compartilhado. Qualquer cookie (sessão) fica fresco. */
+async function isAnonymousRequest(): Promise<boolean> {
+  if (typeof window !== "undefined") return false;
+  try {
+    const { cookies } = await import("next/headers");
+    const jar = await cookies();
+    return jar.getAll().length === 0;
+  } catch {
+    return true;
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   options: ApiOptions = {},
 ): Promise<T> {
-  const headers = await buildHeaders(options);
+  const method = (options.method ?? "GET").toUpperCase();
+  const policy = method === "GET" ? cachePolicyFor(path) : null;
+  const cacheable = Boolean(policy) && (await isAnonymousRequest());
+  const headers = await buildHeaders(options, !cacheable);
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, {
-      ...options,
-      headers,
-      credentials: "include",
-      cache: "no-store",
-    });
+    if (cacheable && policy) {
+      res = await fetch(`${API_URL}${path}`, {
+        method: "GET",
+        headers,
+        next: {
+          revalidate: policy.revalidate,
+          tags: [PUBLIC_CACHE_TAG, ...policy.tags],
+        },
+      });
+    } else {
+      // Súmula, ao vivo, admin, capitão e qualquer sessão: sem cache.
+      res = await fetch(`${API_URL}${path}`, {
+        ...options,
+        method,
+        headers,
+        credentials: "include",
+        cache: "no-store",
+      });
+    }
   } catch {
     throw new ApiError(
       503,

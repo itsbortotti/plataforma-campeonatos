@@ -42,26 +42,26 @@ export function PlayerStatsList({
           <Link
             key={stat.playerId}
             href={`/jogador/${stat.playerId}`}
-            className="flex items-center justify-between rounded-xl px-2 sm:px-3 py-2 sm:py-2.5 hover:bg-accent/30 transition-colors"
+            className="flex items-center gap-2 rounded-xl px-2 sm:px-3 py-2.5 hover:bg-accent/30 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-muted-foreground/50 w-5 text-right">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+              <span className="w-5 shrink-0 text-right text-xs font-bold text-muted-foreground/50">
                 {idx + 1}.
               </span>
               <div
-                className="h-5 w-1 rounded-full"
+                className="h-5 w-1 shrink-0 rounded-full"
                 style={{ backgroundColor: stat.team.primaryColor }}
               />
-              <div>
-                <span className="font-semibold text-sm">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">
                   {stat.player.nickname}
-                </span>
-                <span className="text-xs text-muted-foreground ml-1.5">
+                </p>
+                <p className="truncate text-[11px] text-muted-foreground">
                   {stat.player.name}
-                </span>
+                </p>
               </div>
             </div>
-            <span className="font-black text-lg tabular-nums">
+            <span className="shrink-0 font-black text-lg tabular-nums">
               {type === "goals" ? stat.goals : stat.assists}
             </span>
           </Link>
