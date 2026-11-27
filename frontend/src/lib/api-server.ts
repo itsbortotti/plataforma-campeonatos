@@ -1,6 +1,8 @@
+import { revalidateTag, updateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { API_URL } from "@/lib/api";
 import { ApiError, friendlyApiMessage } from "@/lib/api-error";
+import { PUBLIC_CACHE_TAG } from "@/lib/public-cache";
 
 type ApiOptions = RequestInit;
 
@@ -60,8 +62,29 @@ export async function apiFetch<T>(
       friendlyApiMessage(res.status, apiMessage),
     );
   }
+  if (methodWrites(options.method) && res.ok) {
+    bustPublicCache();
+  }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+function methodWrites(method: string | undefined): boolean {
+  const verb = (method ?? "GET").toUpperCase();
+  return verb !== "GET" && verb !== "HEAD";
+}
+
+/** Painel e capitão gravam pela API do Next: a vitrine pública sai do cache na hora. */
+function bustPublicCache() {
+  try {
+    updateTag(PUBLIC_CACHE_TAG);
+  } catch {
+    try {
+      revalidateTag(PUBLIC_CACHE_TAG, "max");
+    } catch {
+      // fora de uma action (build / script)
+    }
+  }
 }
 
 export function apiGet<T>(path: string) {

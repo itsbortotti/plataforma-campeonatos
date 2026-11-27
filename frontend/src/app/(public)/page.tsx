@@ -25,6 +25,29 @@ import {
 import { HomeHeroLiveCarousel } from "@/components/home/HomeHeroLiveCarousel";
 import { SponsorsStrip } from "@/components/home/SponsorsStrip";
 import { cn } from "@/lib/utils";
+import { pageMetadata } from "@/lib/seo";
+
+export async function generateMetadata() {
+  let title = "SFL — Plataforma de campeonatos";
+  let description =
+    "Classificação, calendário, elencos e estatísticas da liga.";
+  let siteName = "SFL";
+  try {
+    const settings = await apiGet<SystemBrand>("/api/settings");
+    siteName = settings.siteName || siteName;
+    title = `${siteName} — ${settings.tagline || "Plataforma de campeonatos"}`;
+    description = settings.description || settings.tagline || description;
+  } catch {
+    // marca padrão
+  }
+  return pageMetadata({
+    title,
+    description,
+    path: "/",
+    image: "/og",
+    siteName,
+  });
+}
 
 export default async function HomePage() {
   const [competitions, recent, liveMatches, brand] = await Promise.all([

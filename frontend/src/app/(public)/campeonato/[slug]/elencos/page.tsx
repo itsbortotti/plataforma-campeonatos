@@ -3,12 +3,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TeamBadge } from "@/components/TeamBadge";
 import {
+  getCompetitionBySlug,
   getCurrentSeason,
   getRosters,
   getTopScorers,
   getTopAssists,
 } from "@/lib/queries";
 import type { Position } from "@/types";
+import { pageMetadata } from "@/lib/seo";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const competition = await getCompetitionBySlug(slug);
+  const name = competition?.name ?? "Campeonato";
+  return pageMetadata({
+    title: `Elencos · ${name}`,
+    description: `Jogadores, números e posições dos times de ${name}.`,
+    path: `/campeonato/${slug}/elencos`,
+  });
+}
 
 const positionColor: Record<Position, string> = {
   GOL: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
@@ -66,13 +83,13 @@ export default async function CompetitionElencosPage({
               className="card-glow bg-card/80 backdrop-blur-sm overflow-hidden py-0 gap-0"
             >
               <div
-                className="px-6 py-5"
+                className="px-4 py-4 sm:px-6 sm:py-5"
                 style={{
                   background: `linear-gradient(135deg, ${team.primaryColor}15 0%, transparent 100%)`,
                   borderBottom: `1px solid ${team.primaryColor}20`,
                 }}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
                   <TeamBadge
                     name={team.name}
                     shortName={team.shortName}
@@ -80,8 +97,8 @@ export default async function CompetitionElencosPage({
                     logoUrl={team.logoUrl}
                     size="lg"
                   />
-                  <div>
-                    <p className="text-xl font-black">{team.name}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-black sm:text-xl">{team.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {roster.players.length} jogadores
                     </p>
@@ -99,27 +116,27 @@ export default async function CompetitionElencosPage({
                       <Link
                         key={player.id}
                         href={`/jogador/${player.id}`}
-                        className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-accent/30 transition-colors"
+                        className="flex items-center gap-2 rounded-xl px-2 py-2.5 hover:bg-accent/30 transition-colors sm:px-3"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
                           <span
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-black text-white"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-black text-white"
                             style={{
                               background: `linear-gradient(135deg, ${team.primaryColor} 0%, ${team.primaryColor}BB 100%)`,
                             }}
                           >
-                            {player.number}
+                            {player.number ?? "–"}
                           </span>
-                          <div>
-                            <p className="font-semibold text-sm leading-tight">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold leading-tight">
                               {player.nickname}
                             </p>
-                            <p className="text-[11px] text-muted-foreground/60">
+                            <p className="truncate text-[11px] text-muted-foreground/60">
                               {player.name}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex shrink-0 items-center gap-1">
                           {goals > 0 && (
                             <Badge
                               variant="secondary"

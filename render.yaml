@@ -90,6 +90,8 @@ services:
           name: sfl-api
           type: web
           envVarKey: RENDER_EXTERNAL_URL
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://sflcampeonato.com.br
 
   - type: cron
     name: sfl-finalize-stale

@@ -24,7 +24,7 @@ export function StandingsTable({ seasonId, initialStandings, seasonLabel }: Prop
 
   return (
     <>
-    <Table>
+    <Table className="text-xs sm:text-sm [&_td]:px-1 [&_td]:py-2.5 [&_th]:h-8 [&_th]:px-1 sm:[&_td]:px-2 sm:[&_th]:px-2">
       <TableHeader>
         <TableRow className="border-border/40 hover:bg-transparent">
           <TableHead className="w-8 text-[10px] uppercase tracking-wider">
@@ -36,13 +36,13 @@ export function StandingsTable({ seasonId, initialStandings, seasonLabel }: Prop
           <TableHead className="text-center text-[10px] uppercase tracking-wider">
             J
           </TableHead>
-          <TableHead className="text-center text-[10px] uppercase tracking-wider">
+          <TableHead className="hidden text-center text-[10px] uppercase tracking-wider sm:table-cell">
             V
           </TableHead>
-          <TableHead className="text-center text-[10px] uppercase tracking-wider">
+          <TableHead className="hidden text-center text-[10px] uppercase tracking-wider sm:table-cell">
             E
           </TableHead>
-          <TableHead className="text-center text-[10px] uppercase tracking-wider">
+          <TableHead className="hidden text-center text-[10px] uppercase tracking-wider sm:table-cell">
             D
           </TableHead>
           <TableHead className="hidden sm:table-cell text-center text-[10px] uppercase tracking-wider">
@@ -77,8 +77,8 @@ export function StandingsTable({ seasonId, initialStandings, seasonLabel }: Prop
                   {idx + 1}
                 </span>
               </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2.5">
+              <TableCell className="whitespace-normal">
+                <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
                   <TeamBadge
                     name={team.name}
                     shortName={team.shortName}
@@ -86,17 +86,20 @@ export function StandingsTable({ seasonId, initialStandings, seasonLabel }: Prop
                     logoUrl={team.logoUrl}
                     size="sm"
                   />
-                  <span className="font-semibold">{team.name}</span>
+                  <span className="truncate font-semibold">
+                    <span className="sm:hidden">{team.shortName}</span>
+                    <span className="hidden sm:inline">{team.name}</span>
+                  </span>
                 </div>
               </TableCell>
               <TableCell className="text-center text-muted-foreground">
                 {row.played}
               </TableCell>
-              <TableCell className="text-center">{row.won}</TableCell>
-              <TableCell className="text-center text-muted-foreground">
+              <TableCell className="hidden text-center sm:table-cell">{row.won}</TableCell>
+              <TableCell className="hidden text-center text-muted-foreground sm:table-cell">
                 {row.drawn}
               </TableCell>
-              <TableCell className="text-center text-muted-foreground">
+              <TableCell className="hidden text-center text-muted-foreground sm:table-cell">
                 {row.lost}
               </TableCell>
               <TableCell className="hidden sm:table-cell text-center">
@@ -122,7 +125,7 @@ export function StandingsTable({ seasonId, initialStandings, seasonLabel }: Prop
               </TableCell>
               <TableCell className="text-center">
                 <span
-                  className="font-black text-lg"
+                  className="font-black text-base sm:text-lg"
                   style={{
                     color: idx === 0 ? "var(--color-gold)" : undefined,
                   }}
@@ -135,6 +138,9 @@ export function StandingsTable({ seasonId, initialStandings, seasonLabel }: Prop
         })}
       </TableBody>
     </Table>
+    <p className="mt-3 px-1 text-[10px] leading-relaxed text-muted-foreground sm:hidden">
+      J jogos · SG saldo · Pts pontos. Vitórias, empates e derrotas entram em telas maiores.
+    </p>
     {seasonLabel && standings.length > 0 && (
       <div className="flex justify-center pt-4">
         <ShareStandingsButton standings={standings} seasonLabel={seasonLabel} />

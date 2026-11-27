@@ -5,6 +5,14 @@ import { getCompetitions } from "@/lib/queries";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata = pageMetadata({
+  title: "Campeonatos",
+  description:
+    "Escolha um campeonato da SFL para ver classificação, calendário, elencos e estatísticas.",
+  path: "/campeonatos",
+});
 
 export default async function CampeonatosPage() {
   const competitions = await getCompetitions();

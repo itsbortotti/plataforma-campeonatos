@@ -15,6 +15,50 @@ import { resolveCompetitionSlugForSeason } from "@/lib/competition-routes";
 import { PublicMatchBoard } from "@/components/match/PublicMatchBoard";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { pageMetadata } from "@/lib/seo";
+import { formatDate } from "@/lib/format-date";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const match = await getMatchById(null, id);
+  const image = `/og/partida/${id}`;
+  if (!match) {
+    return pageMetadata({
+      title: "Partida",
+      description: "Súmula, escalação e eventos da partida na SFL.",
+      path: `/partida/${id}`,
+      image,
+    });
+  }
+  const home = match.homeTeam.shortName;
+  const away = match.awayTeam.shortName;
+  const played =
+    match.status === "finished" ||
+    match.status === "awarded" ||
+    match.status === "live" ||
+    match.status === "halftime";
+  const headline = played
+    ? `${home} ${match.homeScore ?? 0} x ${match.awayScore ?? 0} ${away}`
+    : `${match.homeTeam.name} x ${match.awayTeam.name}`;
+  const when = formatDate(match.date, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const place = match.venue ? ` · ${match.venue}` : "";
+  return pageMetadata({
+    title: `${headline} · Rodada ${match.round}`,
+    description: played
+      ? `Rodada ${match.round} · ${when}${place}. Súmula e estatísticas na SFL.`
+      : `Rodada ${match.round} · ${when}${place}.`,
+    path: `/partida/${id}`,
+    image,
+  });
+}
 
 const roleLabel: Record<string, string> = {
   referee: "Árbitro",
