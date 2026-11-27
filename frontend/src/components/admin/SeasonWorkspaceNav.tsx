@@ -9,6 +9,7 @@ const TABS: { href: string; label: string; exact?: boolean }[] = [
   { href: "/admin/partidas", label: "Partidas" },
   { href: "/admin/jogadores", label: "Elenco" },
   { href: "/admin/cartoes", label: "Cartões" },
+  { href: "/admin/mensalidades", label: "Mensalidades" },
 ];
 
 /** Abas do workspace da temporada em foco (padrão PlayHQ / MyCup). */
@@ -23,7 +24,8 @@ export function SeasonWorkspaceNav() {
     pathname === "/admin" ||
     pathname === "/admin/partidas" ||
     pathname === "/admin/jogadores" ||
-    pathname === "/admin/cartoes";
+    pathname === "/admin/cartoes" ||
+    pathname === "/admin/mensalidades";
 
   if (!show) return null;
 

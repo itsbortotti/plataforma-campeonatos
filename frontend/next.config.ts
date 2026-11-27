@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:4006";
 
 // Compatível com o Next (scripts e estilos inline) e com o iframe do YouTube.
+// Fatura do Asaas e WhatsApp da tela de mensalidades são <a target="_blank">:
+// navegação de topo, fora de connect-src e frame-src. Não definir navigate-to,
+// senão o browser passa a bloquear essa abertura.
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",

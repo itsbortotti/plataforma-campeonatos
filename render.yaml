@@ -60,6 +60,14 @@ services:
       # Mínimo 12 caracteres, com letras e números. O seed falha se estiver vazia ou fraca.
       - key: SEED_ADMIN_PASSWORD
         sync: false
+      # Mensalidades. Vazio = recurso desligado, o site segue no ar.
+      # ASAAS_ENV deve ser sandbox ou production. Não versionar a chave.
+      - key: ASAAS_API_KEY
+        sync: false
+      - key: ASAAS_WEBHOOK_TOKEN
+        sync: false
+      - key: ASAAS_ENV
+        sync: false
 
   - type: web
     name: sfl-web

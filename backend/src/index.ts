@@ -19,6 +19,8 @@ import { captainRoutes } from "./routes/captain.js";
 import { storageRoutes } from "./routes/storage.js";
 import { cronRoutes } from "./routes/cron.js";
 import { competitionRoutes } from "./routes/competitions.js";
+import { billingAdminRoutes } from "./routes/billing-admin.js";
+import { asaasWebhookRoutes } from "./routes/asaas-webhook.js";
 import { formatZodError, isZodError } from "./core/zod-errors.js";
 
 const app = Fastify({ logger: true });
@@ -89,6 +91,8 @@ await app.register(liveRoutes);
 await app.register(captainRoutes);
 await app.register(storageRoutes);
 await app.register(cronRoutes);
+await app.register(billingAdminRoutes);
+await app.register(asaasWebhookRoutes);
 
 app.setErrorHandler((err, _request, reply) => {
   app.log.error(err);

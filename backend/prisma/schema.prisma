@@ -259,6 +259,7 @@ model Player {
   highlights        MatchHighlight[]
   penalties         PenaltyShootout[]
   cardResets        CardReset[]
+  billing           PlayerBilling?
 
   @@index([userId])
   @@index([email])
@@ -275,10 +276,13 @@ model CardReset {
   yellowCleared Int      @default(0) @map("yellow_cleared")
   redCleared    Int      @default(0) @map("red_cleared")
   reason        String?
+  /// Quando true, o reset também encerra a suspensão pendente (compra da suspensão).
+  clearsPending Boolean  @default(false) @map("clears_pending")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season        Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  player        Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  billingCharge BillingCharge?
 
   @@index([seasonId, playerId])
   @@map("card_resets")
@@ -485,4 +489,111 @@ model AdminAuditLog {
   @@index([entityType, createdAt])
   @@index([userEmail])
   @@map("admin_audit_log")
+}
+
+enum BillingMethod {
+  CREDIT_CARD
+  PIX
+  BOLETO
+}
+
+enum PlayerBillingStatus {
+  none
+  current
+  pending
+  overdue
+  inactive
+}
+
+enum BillingChargeKind {
+  subscription
+  suspension_fine
+}
+
+enum BillingChargeStatus {
+  pending
+  confirmed
+  received
+  overdue
+  refunded
+  canceled
+}
+
+/// Valores da mensalidade e da multa de suspensão. Singleton (id = default).
+model BillingSettings {
+  id                       String   @id @default("default")
+  monthlyAmountCents       Int      @default(6000) @map("monthly_amount_cents")
+  dueDay                   Int      @default(10) @map("due_day")
+  /// FIXED (reais) ou PERCENTAGE.
+  fineType                 String   @default("FIXED") @map("fine_type")
+  fineFixedCents           Int      @default(1000) @map("fine_fixed_cents")
+  /// Pontos-base: 100 = 1,00%.
+  finePercentBps           Int      @default(0) @map("fine_percent_bps")
+  interestPercentBps       Int      @default(0) @map("interest_percent_bps")
+  /// Compra da suspensão (padrão: desligada).
+  suspensionBuyoutEnabled  Boolean  @default(false) @map("suspension_buyout_enabled")
+  suspensionFineCents      Int      @default(1500) @map("suspension_fine_cents")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  @@map("billing_settings")
+}
+
+/// Cliente e assinatura Asaas de um jogador. CPF fica só aqui, fora da API pública.
+model PlayerBilling {
+  id                  String              @id @default(uuid()) @db.Uuid
+  playerId            String              @unique @map("player_id") @db.Uuid
+  asaasCustomerId     String?             @unique @map("asaas_customer_id")
+  asaasSubscriptionId String?             @unique @map("asaas_subscription_id")
+  billingType         BillingMethod?      @map("billing_type")
+  status              PlayerBillingStatus @default(none)
+  cpf                 String?
+  mobilePhone         String?             @map("mobile_phone")
+  cardLast4           String?             @map("card_last4")
+  cardBrand           String?             @map("card_brand")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  player  Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  charges BillingCharge[]
+
+  @@map("player_billings")
+}
+
+model BillingCharge {
+  id                String             @id @default(uuid()) @db.Uuid
+  playerBillingId   String             @map("player_billing_id") @db.Uuid
+  asaasPaymentId    String             @unique @map("asaas_payment_id")
+  kind              BillingChargeKind
+  referenceMonth    String?            @map("reference_month")
+  valueCents        Int                @map("value_cents")
+  status            BillingChargeStatus @default(pending)
+  billingType       String?            @map("billing_type")
+  dueDate           DateTime           @map("due_date") @db.Date
+  paidAt            DateTime?          @map("paid_at")
+  invoiceUrl        String?            @map("invoice_url")
+  bankSlipUrl       String?            @map("bank_slip_url")
+  externalReference String?            @map("external_reference")
+  seasonId          String?            @map("season_id") @db.Uuid
+  cardResetId       String?            @unique @map("card_reset_id") @db.Uuid
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  playerBilling PlayerBilling @relation(fields: [playerBillingId], references: [id], onDelete: Cascade)
+  cardReset     CardReset?    @relation(fields: [cardResetId], references: [id], onDelete: SetNull)
+
+  @@index([referenceMonth, status])
+  @@index([playerBillingId, referenceMonth])
+  @@index([kind, status])
+  @@map("billing_charges")
+}
+
+/// Idempotência do webhook. A chave é o id do evento enviado pelo Asaas.
+model AsaasWebhookEvent {
+  id          String   @id
+  event       String
+  paymentId   String?  @map("payment_id")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@index([paymentId])
+  @@map("asaas_webhook_events")
 }
