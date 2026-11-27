@@ -12,7 +12,6 @@ import {
   getMatchById,
   getMatches,
   getPlayerProfile,
-  getRecentMatchesGlobal,
   getSeasons,
   getStandings,
   getTopScorers,
@@ -184,12 +183,8 @@ export async function loadLatestResult(
     .filter((m) => FINISHED.has(m.status))
     .sort((a, b) => b.date.localeCompare(a.date) || b.round - a.round);
   const picked = finished[0];
-  if (picked) return toFixture(picked, competitionName, seasonName);
-  // Campeonato pedido na URL não herda o placar de outra liga.
-  if (slug) return null;
-  const recent = await getRecentMatchesGlobal(1).catch(() => []);
-  if (!recent[0]) return null;
-  return toFixture(recent[0]);
+  if (!picked) return null;
+  return toFixture(picked, competitionName, seasonName);
 }
 
 export async function loadHomeHighlight(): Promise<{
