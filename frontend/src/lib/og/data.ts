@@ -152,6 +152,20 @@ async function seasonMatches(slug?: string | null): Promise<{
   };
 }
 
+async function fixtureWithContext(match: MatchWithTeams): Promise<OgFixture> {
+  const [slug, seasons] = await Promise.all([
+    resolveCompetitionSlugForSeason(match.seasonId).catch(() => null),
+    getSeasons().catch(() => []),
+  ]);
+  const competition = slug ? await getCompetitionBySlug(slug) : null;
+  const season = seasons.find((item) => item.id === match.seasonId);
+  return toFixture(
+    match,
+    competition?.name ?? match.competition?.name,
+    season?.name ?? match.seasonName,
+  );
+}
+
 export async function loadNextFixture(
   slug?: string | null,
   matchId?: string | null,
@@ -159,7 +173,7 @@ export async function loadNextFixture(
   if (matchId) {
     const match = await getMatchById(null, matchId);
     if (!match) return null;
-    return toFixture(match);
+    return fixtureWithContext(match);
   }
   const { competitionName, seasonName, matches } = await seasonMatches(slug);
   const live = sortByDate(matches.filter((m) => LIVE.has(m.status)));
@@ -176,7 +190,7 @@ export async function loadLatestResult(
   if (matchId) {
     const match = await getMatchById(null, matchId);
     if (!match) return null;
-    return toFixture(match);
+    return fixtureWithContext(match);
   }
   const { competitionName, seasonName, matches } = await seasonMatches(slug);
   const finished = [...matches]
@@ -210,13 +224,7 @@ export async function loadHomeHighlight(): Promise<{
 export async function loadFixtureById(id: string): Promise<OgFixture | null> {
   const match = await getMatchById(null, id);
   if (!match) return null;
-  const [slug, seasons] = await Promise.all([
-    resolveCompetitionSlugForSeason(match.seasonId).catch(() => null),
-    getSeasons().catch(() => []),
-  ]);
-  const competition = slug ? await getCompetitionBySlug(slug) : null;
-  const season = seasons.find((item) => item.id === match.seasonId);
-  return toFixture(match, competition?.name, season?.name);
+  return fixtureWithContext(match);
 }
 
 export async function loadStandingsBoard(slug?: string | null): Promise<{
