@@ -20,8 +20,10 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY entrypoint.sh /entrypoint.sh
+# O disco do Render monta por cima de /var/data. O entrypoint recria as pastas
+# em tempo de start, usando UPLOAD_DIR.
 RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh \
-  && mkdir -p /var/data/uploads \
+  && mkdir -p /var/data/uploads/player-photos /var/data/uploads/system \
   && apk add --no-cache curl
 EXPOSE 4006
 ENTRYPOINT ["/entrypoint.sh"]

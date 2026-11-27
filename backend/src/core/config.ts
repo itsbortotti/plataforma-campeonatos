@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
+import { ensureUploadDirs } from "./upload-dirs.js";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -11,7 +11,7 @@ const uploadDir = path.resolve(
   process.cwd(),
   process.env.UPLOAD_DIR || "./data/uploads",
 );
-if (!existsSync(uploadDir)) mkdirSync(uploadDir, { recursive: true });
+ensureUploadDirs(uploadDir);
 
 export const config = {
   port: Number(process.env.PORT || 4006),

@@ -2,7 +2,8 @@
 # Workspace Hobby + compute Starter (~US$7 + US$7) + Postgres basic-256mb (~US$6) ≈ US$20/mês
 #
 # Dashboard → New → Blueprint → repo itsbortotti/plataforma-campeonatos
-# Depois do 1º deploy: defina JWT_SECRET / CRON_SECRET se pedirem, rode seed se SEED_ADMIN=true
+# Depois do 1º deploy: defina JWT_SECRET / CRON_SECRET se pedirem.
+# SEED_ADMIN fica false: um sync deste blueprint não religa o seed em todo start.
 # DNS Hostinger: CNAME @/www → sfl-web.onrender.com (e custom domain no serviço web)
 
 databases:
@@ -51,15 +52,22 @@ services:
           name: sfl-web
           type: web
           envVarKey: RENDER_EXTERNAL_URL
+      # false de propósito. true faz o entrypoint rodar o seed no start.
+      # O seed só CRIA o admin se ele não existe. Não regrava senha, e-mail nem papel.
+      # Para regravar a senha uma vez: SEED_ADMIN=true e SEED_ADMIN_RESET_PASSWORD=true,
+      # redeploy, e volte as duas para false (o próximo sync também as deixa false).
       - key: SEED_ADMIN
-        value: "true"
+        value: "false"
       - key: SEED_ADMIN_USER
         value: master
       # Senha do Master. Defina no painel do Render (não neste arquivo).
-      # A senha antiga vazou no histórico do Git: troque o valor e redeploy o sfl-api.
-      # Mínimo 12 caracteres, com letras e números. O seed falha se estiver vazia ou fraca.
+      # A senha antiga vazou no histórico do Git: troque o valor no painel.
+      # Mínimo 12 caracteres, com letras e números. Senha fraca é só logada;
+      # não derruba o start do sfl-api.
       - key: SEED_ADMIN_PASSWORD
         sync: false
+      - key: SEED_ADMIN_RESET_PASSWORD
+        value: "false"
       # Mensalidades. Vazio = recurso desligado, o site segue no ar.
       # ASAAS_ENV deve ser sandbox ou production. Não versionar a chave.
       - key: ASAAS_API_KEY

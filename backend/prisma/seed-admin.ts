@@ -1,6 +1,13 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
-import { assertSeedAdminPassword } from "./password-policy.ts";
+import {
+  adminCreateData,
+  adminLookupEmails,
+  adminPasswordResetData,
+  decideAdminSeed,
+  seedAdminResetPasswordEnabled,
+  seedPasswordError,
+} from "./seed-admin-policy.ts";
 
 const prisma = new PrismaClient();
 
@@ -11,11 +18,19 @@ const LOGIN = LOGIN_RAW.includes("@")
   ? LOGIN_RAW
   : `${LOGIN_RAW}@sfl.local`;
 const PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "";
-const LEGACY_EMAILS = ["admin@sfl.local", LOGIN_RAW, "master"];
+
+async function findExistingAdmin() {
+  for (const email of adminLookupEmails(LOGIN, LOGIN_RAW)) {
+    const found = await prisma.user.findUnique({ where: { email } });
+    if (found) return found;
+  }
+  return null;
+}
 
 async function main() {
-  assertSeedAdminPassword(PASSWORD, LOGIN_RAW);
-  const passwordHash = await bcrypt.hash(PASSWORD, 10);
+  const resetPassword = seedAdminResetPasswordEnabled(
+    process.env.SEED_ADMIN_RESET_PASSWORD,
+  );
 
   const competition = await prisma.competition.upsert({
     where: { slug: "sfl" },
@@ -34,82 +49,70 @@ async function main() {
     },
   });
 
-  let user = await prisma.user.findUnique({ where: { email: LOGIN } });
-  if (!user) {
-    for (const legacyEmail of LEGACY_EMAILS) {
-      if (legacyEmail === LOGIN) continue;
-      const legacy = await prisma.user.findUnique({
-        where: { email: legacyEmail },
-      });
-      if (legacy) {
-        user = await prisma.user.update({
-          where: { id: legacy.id },
-          data: {
-            email: LOGIN,
-            passwordHash,
-            role: "admin",
-            displayName: "Master SFL",
-          },
+  const existing = await findExistingAdmin();
+  const decision = decideAdminSeed({
+    adminExists: existing != null,
+    resetPassword,
+  });
+
+  let user = existing;
+  let passwordRejected = false;
+
+  if (decision === "skip") {
+    console.log(
+      `Admin já existe (${existing?.email}). Senha, e-mail e papel não foram alterados.`,
+    );
+  } else {
+    const failure = seedPasswordError(PASSWORD, LOGIN_RAW);
+    if (failure) {
+      passwordRejected = true;
+      console.error(failure);
+      console.error(
+        "Seed do admin: validação da senha falhou. Nenhum usuário foi criado ou teve a senha regravada. O start do servidor continua.",
+      );
+    } else {
+      const passwordHash = await bcrypt.hash(PASSWORD, 10);
+      if (decision === "create") {
+        user = await prisma.user.create({
+          data: adminCreateData(LOGIN, passwordHash),
         });
-        break;
+        console.log(`Admin criado: ${user.email}`);
+      } else if (existing) {
+        user = await prisma.user.update({
+          where: { id: existing.id },
+          data: adminPasswordResetData(passwordHash),
+        });
+        console.log(
+          `Senha do admin regravada (${user.email}) porque SEED_ADMIN_RESET_PASSWORD=true.`,
+        );
       }
     }
   }
 
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: LOGIN,
-        passwordHash,
-        role: "admin",
-        displayName: "Master SFL",
-      },
-    });
-  } else {
-    user = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        email: LOGIN,
-        passwordHash,
-        role: "admin",
-        displayName: "Master SFL",
-      },
-    });
-  }
-
-  for (const legacyEmail of LEGACY_EMAILS) {
-    if (legacyEmail === LOGIN) continue;
-    const leftover = await prisma.user.findUnique({
-      where: { email: legacyEmail },
-    });
-    if (leftover && leftover.id !== user.id) {
-      await prisma.user.update({
-        where: { id: leftover.id },
-        data: { passwordHash: null, role: "player" },
-      });
-    }
-  }
-
-  const existingMembership = await prisma.userMembership.findFirst({
-    where: {
-      userId: user.id,
-      role: "owner",
-      competitionId: competition.id,
-      teamId: null,
-    },
-  });
-  if (!existingMembership) {
-    await prisma.userMembership.create({
-      data: {
+  if (user?.role === "admin") {
+    const existingMembership = await prisma.userMembership.findFirst({
+      where: {
         userId: user.id,
         role: "owner",
         competitionId: competition.id,
         teamId: null,
       },
     });
+    if (!existingMembership) {
+      await prisma.userMembership.create({
+        data: {
+          userId: user.id,
+          role: "owner",
+          competitionId: competition.id,
+          teamId: null,
+        },
+      });
+    }
   }
 
-  console.log(`Admin/owner ready: ${user.email}`);
+  if (user && !passwordRejected) {
+    console.log(`Admin/owner ready: ${user.email}`);
+  }
   console.log(`Competition: ${competition.slug} (${competition.id})`);
 }
 
