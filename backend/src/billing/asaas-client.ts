@@ -88,6 +88,31 @@ export function createAsaasClient(
     return parsed as T;
   }
 
+  async function listAll<T>(
+    path: string,
+    params: Record<string, string>,
+  ): Promise<AsaasList<T>> {
+    const pageSize = 100;
+    const maxPages = 50;
+    const data: T[] = [];
+    let offset = 0;
+    for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
+      const query = new URLSearchParams({
+        ...params,
+        limit: String(pageSize),
+        offset: String(offset),
+      });
+      const page = await request<AsaasList<T>>("GET", `${path}?${query.toString()}`);
+      const batch = page.data ?? [];
+      data.push(...batch);
+      if (page.hasMore !== true || batch.length === 0) {
+        return { object: page.object ?? "list", hasMore: false, data };
+      }
+      offset += pageSize;
+    }
+    throw new AsaasApiError(502, "O Asaas devolveu cobranças demais para sincronizar.");
+  }
+
   return {
     async findCustomerByExternalReference(externalReference: string) {
       const query = new URLSearchParams({ externalReference });
@@ -116,10 +141,16 @@ export function createAsaasClient(
       );
     },
     listSubscriptionPayments(id: string) {
-      return request<AsaasList<AsaasPayment>>(
-        "GET",
-        `/subscriptions/${encodeURIComponent(id)}/payments?limit=12`,
+      return listAll<AsaasPayment>(
+        `/subscriptions/${encodeURIComponent(id)}/payments`,
+        {},
       );
+    },
+    listPaymentsByExternalReference(customerId: string, externalReference: string) {
+      return listAll<AsaasPayment>("/payments", {
+        customer: customerId,
+        externalReference,
+      });
     },
     createPayment(body: Record<string, unknown>) {
       return request<AsaasPayment>("POST", "/payments", body);

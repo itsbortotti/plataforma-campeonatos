@@ -105,16 +105,20 @@ export function createPrismaBillingRepository(): BillingRepository {
       });
       if (!billing) throw new Error("BILLING_NOT_FOUND");
 
-      const existing = await prisma.billingCharge.findUnique({
-        where: { asaasPaymentId: input.asaasPaymentId },
-      });
-      const valueCents =
-        input.valueCents > 0 ? input.valueCents : (existing?.valueCents ?? 0);
-      const data = {
+      const include = { playerBilling: { select: { playerId: true } } } as const;
+      const buildData = (
+        existing: {
+          kind: BillingChargeKind;
+          valueCents: number;
+          externalReference: string | null;
+          seasonId: string | null;
+        } | null,
+      ) => ({
         playerBillingId: billing.id,
         kind: (existing?.kind ?? input.kind) as BillingChargeKind,
         referenceMonth: input.referenceMonth,
-        valueCents,
+        valueCents:
+          input.valueCents > 0 ? input.valueCents : (existing?.valueCents ?? 0),
         status: input.status as BillingChargeStatus,
         billingType: input.billingType,
         dueDate: parseDateKey(input.dueDate),
@@ -123,19 +127,39 @@ export function createPrismaBillingRepository(): BillingRepository {
         bankSlipUrl: input.bankSlipUrl,
         externalReference: input.externalReference ?? existing?.externalReference,
         seasonId: input.seasonId ?? existing?.seasonId ?? null,
-      };
+      });
 
-      const row = existing
-        ? await prisma.billingCharge.update({
-            where: { id: existing.id },
-            data,
-            include: { playerBilling: { select: { playerId: true } } },
-          })
-        : await prisma.billingCharge.create({
-            data: { ...data, asaasPaymentId: input.asaasPaymentId },
-            include: { playerBilling: { select: { playerId: true } } },
-          });
-      return snapshotFrom(row);
+      const existing = await prisma.billingCharge.findUnique({
+        where: { asaasPaymentId: input.asaasPaymentId },
+      });
+      if (existing) {
+        const row = await prisma.billingCharge.update({
+          where: { id: existing.id },
+          data: buildData(existing),
+          include,
+        });
+        return snapshotFrom(row);
+      }
+
+      try {
+        const row = await prisma.billingCharge.create({
+          data: { ...buildData(null), asaasPaymentId: input.asaasPaymentId },
+          include,
+        });
+        return snapshotFrom(row);
+      } catch (error) {
+        if (!isUniqueError(error)) throw error;
+        const raced = await prisma.billingCharge.findUnique({
+          where: { asaasPaymentId: input.asaasPaymentId },
+        });
+        if (!raced) throw error;
+        const row = await prisma.billingCharge.update({
+          where: { id: raced.id },
+          data: buildData(raced),
+          include,
+        });
+        return snapshotFrom(row);
+      }
     },
 
     async listSubscriptionCharges(playerId): Promise<SubscriptionChargeRef[]> {

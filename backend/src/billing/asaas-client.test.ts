@@ -64,4 +64,30 @@ describe("createAsaasClient", () => {
     const [url] = fetchImpl.mock.calls[0] as unknown as [string];
     expect(url).toBe("https://api.asaas.com/v3/subscriptions");
   });
+
+  it("percorre todas as páginas de cobranças da assinatura", async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      const offset = new URL(url).searchParams.get("offset");
+      const body =
+        offset === "0"
+          ? { object: "list", hasMore: true, data: [{ id: "pay_1" }] }
+          : { object: "list", hasMore: false, data: [{ id: "pay_2" }] };
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    const client = createAsaasClient(config, fetchImpl as unknown as typeof fetch);
+    const listed = await client.listSubscriptionPayments("sub_1");
+    expect(listed.data?.map((item) => item.id)).toEqual(["pay_1", "pay_2"]);
+    expect(listed.hasMore).toBe(false);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+
+    const first = new URL((fetchImpl.mock.calls[0] as unknown as [string])[0]);
+    expect(first.pathname).toBe("/v3/subscriptions/sub_1/payments");
+    expect(first.searchParams.get("limit")).toBe("100");
+    expect(first.searchParams.get("offset")).toBe("0");
+    const second = new URL((fetchImpl.mock.calls[1] as unknown as [string])[0]);
+    expect(second.searchParams.get("offset")).toBe("100");
+  });
 });

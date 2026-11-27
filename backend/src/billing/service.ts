@@ -13,10 +13,12 @@ import {
   computeNextDueDate,
   deriveAccountStatus,
   isValidCpf,
+  mapAsaasChargeStatus,
   maskCpf,
   monthStatusOf,
   onlyDigits,
   saoPauloDate,
+  suspensionReference,
   type AccountStatus,
   type BillingMethod,
   type ChargeStatus,
@@ -448,6 +450,7 @@ export async function createSuspensionFine(
     });
   }
 
+  const today = saoPauloDate();
   const open = await prisma.billingCharge.findFirst({
     where: {
       playerBillingId: billing.id,
@@ -464,7 +467,29 @@ export async function createSuspensionFine(
     };
   }
 
-  const today = saoPauloDate();
+  const listed = await ensured.client.listPaymentsByExternalReference(
+    ensured.customerId,
+    suspensionReference(player.id, season.id),
+  );
+  const existingPayment = (listed.data ?? []).find((payment) => {
+    const status = mapAsaasChargeStatus(payment, today);
+    return status === "pending" || status === "overdue";
+  });
+  if (existingPayment) {
+    await persistPayments(
+      player.id,
+      [existingPayment],
+      "suspension_fine",
+      season.id,
+      today,
+    );
+    return {
+      reused: true,
+      invoiceUrl: existingPayment.invoiceUrl ?? null,
+      asaasPaymentId: existingPayment.id,
+    };
+  }
+
   const payment = await ensured.client.createPayment(
     buildSuspensionPaymentPayload({
       customerId: ensured.customerId,
