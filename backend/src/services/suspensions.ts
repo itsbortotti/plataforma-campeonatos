@@ -1,4 +1,5 @@
 import { prisma } from "../core/prisma.js";
+import { applyCardReset } from "./card-reset.js";
 import { resolveCompetitionRules } from "./competition-rules.js";
 
 export type PlayerSuspension = {
@@ -86,7 +87,7 @@ export async function getSuspensionsForMatch(
         pending: 0,
         reason: null,
       };
-      st.yellow = 0;
+      applyCardReset(st, r);
       byPlayer.set(r.playerId, st);
       resetIdx += 1;
     }
@@ -130,7 +131,7 @@ export async function getSuspensionsForMatch(
       pending: 0,
       reason: null,
     };
-    st.yellow = 0;
+    applyCardReset(st, r);
     byPlayer.set(r.playerId, st);
     resetIdx += 1;
   }

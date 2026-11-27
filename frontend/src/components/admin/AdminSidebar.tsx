@@ -7,6 +7,7 @@ import {
   Trophy,
   Shield,
   ScrollText,
+  Wallet,
   Menu,
   ArrowLeft,
   PanelLeftClose,
@@ -64,6 +65,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/campeonatos", label: "Campeonatos", icon: Trophy },
       { href: "/admin/times", label: "Times", icon: Shield },
+      { href: "/admin/mensalidades", label: "Mensalidades", icon: Wallet },
     ],
   },
   {
