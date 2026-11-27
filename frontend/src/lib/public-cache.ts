@@ -26,11 +26,6 @@ const RULES: Array<{ test: RegExp; revalidate: number; tags: string[] }> = [
     tags: ["sfl-stats"],
   },
   {
-    test: /^\/api\/seasons\/[^/]+\/matches$/,
-    revalidate: 60,
-    tags: ["sfl-matches"],
-  },
-  {
     test: /^\/api\/seasons\/[^/]+\/rosters$/,
     revalidate: 120,
     tags: ["sfl-rosters"],
@@ -40,10 +35,14 @@ const RULES: Array<{ test: RegExp; revalidate: number; tags: string[] }> = [
   { test: /^\/api\/players\/[^/]+$/, revalidate: 120, tags: ["sfl-players"] },
 ];
 
-/** Partida individual (súmula), ao vivo, sessão e painel: sempre frescos. */
+/**
+ * Sempre frescos: súmula, ao vivo, lista da temporada (status muda no apito)
+ * e qualquer rota de sessão ou painel.
+ */
 const FRESH: RegExp[] = [
   /^\/api\/matches\/live$/,
   /^\/api\/matches\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  /^\/api\/seasons\/[^/]+\/matches$/,
   /^\/api\/admin\//,
   /^\/api\/auth\//,
   /^\/api\/captain\//,

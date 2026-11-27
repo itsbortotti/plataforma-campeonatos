@@ -185,6 +185,8 @@ export async function loadLatestResult(
     .sort((a, b) => b.date.localeCompare(a.date) || b.round - a.round);
   const picked = finished[0];
   if (picked) return toFixture(picked, competitionName, seasonName);
+  // Campeonato pedido na URL não herda o placar de outra liga.
+  if (slug) return null;
   const recent = await getRecentMatchesGlobal(1).catch(() => []);
   if (!recent[0]) return null;
   return toFixture(recent[0]);
