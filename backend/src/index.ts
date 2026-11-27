@@ -7,9 +7,8 @@ import jwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
-import path from "node:path";
-import { existsSync, mkdirSync } from "node:fs";
 import { config } from "./core/config.js";
+import { ensureUploadDirs } from "./core/upload-dirs.js";
 import { MAX_IMAGE_BYTES, safeUploadHeaders } from "./services/uploads.js";
 import { authRoutes } from "./routes/auth.js";
 import { publicRoutes } from "./routes/public.js";
@@ -66,16 +65,15 @@ function setUploadHeaders(
   }
 }
 
+const uploadDirs = ensureUploadDirs(config.uploadDir);
 await app.register(fastifyStatic, {
-  root: path.join(config.uploadDir, "player-photos"),
+  root: uploadDirs.playerPhotos,
   prefix: "/api/storage/player-photos/",
   decorateReply: false,
   setHeaders: setUploadHeaders,
 });
-const systemUploadDir = path.join(config.uploadDir, "system");
-if (!existsSync(systemUploadDir)) mkdirSync(systemUploadDir, { recursive: true });
 await app.register(fastifyStatic, {
-  root: systemUploadDir,
+  root: uploadDirs.system,
   prefix: "/api/storage/system/",
   decorateReply: false,
   setHeaders: setUploadHeaders,

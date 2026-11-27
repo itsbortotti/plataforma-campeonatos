@@ -50,19 +50,31 @@ Blueprint em `render.yaml` (~US$20/mês: 2× Starter + Postgres basic-256mb):
 1. No [Render](https://dashboard.render.com): **New → Blueprint** → repo `itsbortotti/plataforma-campeonatos`.
 2. Aprovar o sync (serviços `sfl-api`, `sfl-web`, DB `sfl-db`).
 3. Após o deploy: URLs `https://sfl-web…onrender.com` e `https://sfl-api…onrender.com`.
-4. Defina `SEED_ADMIN_USER` e `SEED_ADMIN_PASSWORD` no serviço `sfl-api` (não versionar a senha).
+4. O blueprint deixa `SEED_ADMIN=false`. Para criar o Master a primeira vez, siga a seção abaixo. Não versione a senha.
 5. Domínio próprio: no serviço `sfl-web` → Custom Domain → na Hostinger, CNAME para o host do Render.
+
+Fotos de jogador ficam em `UPLOAD_DIR` (`/var/data/uploads` no blueprint). O disco `sfl-uploads` já está montado em `/var/data`. No start, o entrypoint e a API criam `player-photos` e `system` dentro dessa pasta.
 
 ## Senha do Master (`SEED_ADMIN_PASSWORD`)
 
-A senha do usuário Master já apareceu no histórico público do Git. O histórico **não** foi reescrito. O valor atual precisa ser trocado no Render pelo dono da conta:
+A senha do usuário Master já apareceu no histórico público do Git. O histórico **não** foi reescrito. O valor atual precisa ser trocado no Render pelo dono da conta.
 
-1. No serviço `sfl-api`, abra **Environment** e substitua `SEED_ADMIN_PASSWORD` por uma senha nova.
-2. A senha fica só nessa variável. Não cole o valor no repositório, no README, em issue ou em commit.
-3. Use no mínimo 12 caracteres, com letras e números. O seed recusa senha vazia ou fraca e, com `SEED_ADMIN=true`, regrava o hash a cada deploy.
-4. Salve e faça redeploy do `sfl-api`. Confira o login em `/master/login` com a senha nova e que a antiga não entra mais.
+`render.yaml` declara `SEED_ADMIN=false` e `SEED_ADMIN_RESET_PASSWORD=false`. Um sync do blueprint não volta a ligar o seed em todo start. Com `SEED_ADMIN=true`, o `entrypoint.sh` roda `prisma/seed-admin.ts` e:
 
-Não há valor de exemplo utilizável neste repositório. No ambiente local, exporte a variável no `backend/.env` (arquivo gitignored) antes de `npm run seed:admin`.
+- cria o usuário Master só se ainda não existir (e-mail canônico ou legado, por exemplo `master@sfl.local` ou `admin@sfl.local`);
+- não regrava `passwordHash`, e-mail nem papel de um admin que já existe;
+- regrava só o hash se `SEED_ADMIN_RESET_PASSWORD=true` no mesmo start;
+- se a senha estiver vazia ou fraca, registra o erro e segue. Essa validação não encerra o container: o servidor sobe mesmo assim.
+
+Para criar o admin, ou para trocar a senha de quem já existe:
+
+1. No serviço `sfl-api`, abra **Environment**. A senha fica só em `SEED_ADMIN_PASSWORD`. Não cole o valor no repositório, no README, em issue ou em commit.
+2. Use no mínimo 12 caracteres, com letras e números.
+3. Para criar: `SEED_ADMIN=true`. Para trocar a senha de um admin que já existe: também `SEED_ADMIN_RESET_PASSWORD=true`.
+4. Salve e faça redeploy do `sfl-api`. Confira o login em `/master/login`.
+5. Volte `SEED_ADMIN` e `SEED_ADMIN_RESET_PASSWORD` para `false`. O próximo sync do blueprint também deixa as duas assim.
+
+Não há valor de exemplo utilizável neste repositório. No ambiente local, exporte a variável no `backend/.env` (arquivo gitignored) antes de `npm run seed:admin`. O comando local segue a mesma regra: cria se faltar e só troca a senha com `SEED_ADMIN_RESET_PASSWORD=true`.
 
 ## Mensalidades (Asaas)
 
