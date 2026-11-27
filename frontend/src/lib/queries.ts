@@ -1027,29 +1027,13 @@ export async function getPlayerProfile(
         position: string;
         photoUrl: string | null;
       };
-      rosters: Array<{
-        seasonId: string;
-        seasonName: string;
-        team: Team | null;
-        number: number | null;
-        isCaptain: boolean;
-      }>;
-      events: MatchEvent[];
+      currentSeason: PlayerProfile["currentSeason"];
+      career: PlayerCareerTotals;
+      seasons: PlayerSeasonEntry[];
+      recentMatches: PlayerMatchAppearance[];
     }>(`/api/players/${playerId}`);
 
-    const current = await getCurrentSeason();
-    const currentRoster =
-      data.rosters.find((r) => r.seasonId === current?.id) ?? null;
-
-    let goals = 0;
-    let assists = 0;
-    let yellowCards = 0;
-    let redCards = 0;
-    for (const e of data.events) {
-      if (e.type === "goal" || e.type === "penalty_goal") goals += 1;
-      if (e.type === "yellow_card") yellowCards += 1;
-      if (e.type === "red_card") redCards += 1;
-    }
+    if (!data.career || !data.seasons || !data.recentMatches) return null;
 
     return {
       id: data.player.id,
@@ -1057,38 +1041,10 @@ export async function getPlayerProfile(
       nickname: data.player.nickname,
       position: data.player.position,
       photoUrl: data.player.photoUrl,
-      currentSeason:
-        currentRoster?.team && current
-          ? {
-              seasonId: current.id,
-              seasonName: current.name,
-              year: current.year,
-              team: currentRoster.team,
-              number: currentRoster.number ?? 0,
-              isCaptain: currentRoster.isCaptain,
-            }
-          : null,
-      career: {
-        matches: data.events.length,
-        goals,
-        assists,
-        yellowCards,
-        redCards,
-      },
-      seasons: data.rosters.map((r) => ({
-        seasonId: r.seasonId,
-        seasonName: r.seasonName,
-        year: 0,
-        team: r.team,
-        number: r.number,
-        isCaptain: r.isCaptain,
-        matches: 0,
-        goals: 0,
-        assists: 0,
-        yellowCards: 0,
-        redCards: 0,
-      })),
-      recentMatches: [],
+      currentSeason: data.currentSeason,
+      career: data.career,
+      seasons: data.seasons,
+      recentMatches: data.recentMatches,
     };
   } catch {
     return null;

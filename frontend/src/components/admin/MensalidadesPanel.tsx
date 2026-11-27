@@ -329,6 +329,7 @@ export function MensalidadesPanel({
           ) : (
             players.map((player) => {
               const url = player.charge?.invoiceUrl;
+              const fineUrl = player.suspensionCharge?.invoiceUrl;
               const whatsapp = url
                 ? `https://wa.me/?text=${encodeURIComponent(
                     `Fala, ${player.nickname}! Segue a mensalidade da SFL (${monthLabel(overview.month)}): ${url}`,
@@ -383,12 +384,32 @@ export function MensalidadesPanel({
                         <Copy />
                         Copiar link
                       </Button>
+                      {url ? (
+                        <a
+                          className={buttonVariants({ variant: "outline", size: "sm" })}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Abrir fatura
+                        </a>
+                      ) : null}
+                      {fineUrl ? (
+                        <a
+                          className={buttonVariants({ variant: "outline", size: "sm" })}
+                          href={fineUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Abrir multa
+                        </a>
+                      ) : null}
                       {whatsapp ? (
                         <a
                           className={buttonVariants({ variant: "outline", size: "sm" })}
                           href={whatsapp}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener noreferrer"
                         >
                           <MessageCircle />
                           WhatsApp

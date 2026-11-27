@@ -1,13 +1,16 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
 import cookie from "@fastify/cookie";
 import jwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
+import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import path from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 import { config } from "./core/config.js";
+import { MAX_IMAGE_BYTES, safeUploadHeaders } from "./services/uploads.js";
 import { authRoutes } from "./routes/auth.js";
 import { publicRoutes } from "./routes/public.js";
 import { adminRoutes } from "./routes/admin.js";
@@ -26,16 +29,48 @@ await app.register(cors, {
   origin: config.corsOrigins,
   credentials: true,
 });
+await app.register(helmet, {
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'none'"],
+    },
+  },
+  hsts: { maxAge: 15552000, includeSubDomains: true },
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  xFrameOptions: { action: "deny" },
+  xContentTypeOptions: true,
+});
+await app.register(rateLimit, {
+  global: false,
+  hook: "preHandler",
+  max: 5,
+  timeWindow: 15 * 60 * 1000,
+});
 await app.register(cookie);
 await app.register(jwt, {
   secret: config.jwtSecret,
   cookie: { cookieName: config.cookieName, signed: false },
 });
-await app.register(multipart, { limits: { fileSize: 8 * 1024 * 1024 } });
+await app.register(multipart, { limits: { fileSize: MAX_IMAGE_BYTES } });
+
+function setUploadHeaders(
+  res: { setHeader: (name: string, value: string) => void },
+  filePath: string,
+) {
+  for (const [name, value] of Object.entries(safeUploadHeaders(filePath))) {
+    res.setHeader(name, value);
+  }
+}
+
 await app.register(fastifyStatic, {
   root: path.join(config.uploadDir, "player-photos"),
   prefix: "/api/storage/player-photos/",
   decorateReply: false,
+  setHeaders: setUploadHeaders,
 });
 const systemUploadDir = path.join(config.uploadDir, "system");
 if (!existsSync(systemUploadDir)) mkdirSync(systemUploadDir, { recursive: true });
@@ -43,6 +78,7 @@ await app.register(fastifyStatic, {
   root: systemUploadDir,
   prefix: "/api/storage/system/",
   decorateReply: false,
+  setHeaders: setUploadHeaders,
 });
 
 app.get("/health", async () => ({ ok: true, service: "sfl-backend" }));
@@ -62,6 +98,18 @@ app.setErrorHandler((err, _request, reply) => {
   app.log.error(err);
   if (isZodError(err)) {
     return reply.code(400).send({ error: formatZodError(err) });
+  }
+  const statusCode =
+    typeof err === "object" && err && "statusCode" in err
+      ? Number((err as { statusCode?: number }).statusCode)
+      : 0;
+  if (statusCode === 413) {
+    return reply.code(413).send({ error: "Arquivo maior que 5 MB." });
+  }
+  if (statusCode === 429) {
+    return reply.code(429).send({
+      error: "Muitas tentativas de login. Espere alguns minutos e tente de novo.",
+    });
   }
   const message = err instanceof Error ? err.message : "Erro interno";
   if (message.includes("Unique constraint")) {

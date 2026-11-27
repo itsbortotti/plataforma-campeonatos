@@ -32,6 +32,18 @@ function statusBadge(status: string) {
           Intervalo
         </Badge>
       );
+    case "postponed":
+      return (
+        <Badge className="text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/30">
+          Adiado
+        </Badge>
+      );
+    case "abandoned":
+      return (
+        <Badge className="text-[10px] bg-red-500/15 text-red-300 border border-red-500/30">
+          Cancelada
+        </Badge>
+      );
     default:
       return (
         <Badge
@@ -100,7 +112,9 @@ export default async function CompetitionCalendarioPage({
               href={`/partida/${match.id}`}
               className="block"
             >
-              <Card className="card-glow-hover bg-card/80 border-border/50 hover:border-border transition-all">
+              <Card
+                className={`card-glow-hover bg-card/80 border-border/50 hover:border-border transition-all ${match.status === "postponed" ? "opacity-90" : ""}`}
+              >
                 <CardContent className="py-3 px-3 sm:py-4 sm:px-5">
                   <div className="flex items-center justify-between gap-2 sm:gap-4">
                     <div className="hidden sm:block min-w-[110px]">
