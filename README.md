@@ -52,3 +52,14 @@ Blueprint em `render.yaml` (~US$20/mês: 2× Starter + Postgres basic-256mb):
 3. Após o deploy: URLs `https://sfl-web…onrender.com` e `https://sfl-api…onrender.com`.
 4. Defina `SEED_ADMIN_USER` e `SEED_ADMIN_PASSWORD` no serviço `sfl-api` (não versionar a senha).
 5. Domínio próprio: no serviço `sfl-web` → Custom Domain → na Hostinger, CNAME para o host do Render.
+
+## Senha do Master (`SEED_ADMIN_PASSWORD`)
+
+A senha do usuário Master já apareceu no histórico público do Git. O histórico **não** foi reescrito. O valor atual precisa ser trocado no Render pelo dono da conta:
+
+1. No serviço `sfl-api`, abra **Environment** e substitua `SEED_ADMIN_PASSWORD` por uma senha nova.
+2. A senha fica só nessa variável. Não cole o valor no repositório, no README, em issue ou em commit.
+3. Use no mínimo 12 caracteres, com letras e números. O seed recusa senha vazia ou fraca e, com `SEED_ADMIN=true`, regrava o hash a cada deploy.
+4. Salve e faça redeploy do `sfl-api`. Confira o login em `/master/login` com a senha nova e que a antiga não entra mais.
+
+Não há valor de exemplo utilizável neste repositório. No ambiente local, exporte a variável no `backend/.env` (arquivo gitignored) antes de `npm run seed:admin`.

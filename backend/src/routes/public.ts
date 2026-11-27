@@ -9,6 +9,7 @@ import {
   mapPlayer,
   mapTeam,
 } from "../services/mappers.js";
+import { buildPlayerProfile } from "../services/player-profile.js";
 import { computePlayerStats, computeStandings } from "../services/standings.js";
 import { getSystemSettings } from "../services/system-settings.js";
 
@@ -343,34 +344,123 @@ export async function publicRoutes(app: FastifyInstance) {
     const player = await prisma.player.findUnique({ where: { id } });
     if (!player) return reply.code(404).send({ error: "Jogador não encontrado" });
 
-    const rosters = await prisma.seasonRoster.findMany({
-      where: { playerId: id },
-      include: { team: true, season: true },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const events = await prisma.matchEvent.findMany({
-      where: {
-        OR: [{ playerId: id }, { assistPlayerId: id }],
-        type: { in: ["goal", "own_goal", "penalty_goal", "yellow_card", "red_card"] },
+    const matchInclude = {
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+        season: true,
       },
-      include: { match: { include: teamInclude } },
-      orderBy: { createdAt: "desc" },
+    } as const;
+
+    const [rosters, lineups, events, ratings] = await Promise.all([
+      prisma.seasonRoster.findMany({
+        where: { playerId: id },
+        include: { team: true, season: true },
+      }),
+      prisma.matchLineup.findMany({
+        where: { playerId: id },
+        include: { team: true, match: matchInclude },
+      }),
+      prisma.matchEvent.findMany({
+        where: {
+          OR: [{ playerId: id }, { assistPlayerId: id }, { playerInId: id }],
+          type: {
+            in: [
+              "goal",
+              "own_goal",
+              "penalty_goal",
+              "yellow_card",
+              "red_card",
+              "substitution",
+            ],
+          },
+        },
+        include: { team: true, match: matchInclude },
+      }),
+      prisma.matchPlayerRating.findMany({
+        where: { playerId: id },
+        select: { matchId: true, rating: true },
+      }),
+    ]);
+
+    const matches = new Map<
+      string,
+      (typeof lineups)[number]["match"] | (typeof events)[number]["match"]
+    >();
+    for (const lineup of lineups) matches.set(lineup.matchId, lineup.match);
+    for (const event of events) matches.set(event.matchId, event.match);
+
+    const profile = buildPlayerProfile({
+      playerId: id,
+      rosters: rosters.map((roster) => ({
+        seasonId: roster.seasonId,
+        seasonName: roster.season.name,
+        year: roster.season.year,
+        isCurrent: roster.season.isCurrent,
+        team: roster.team ? mapTeam(roster.team) : null,
+        number: roster.number,
+        isCaptain: roster.isCaptain,
+      })),
+      matches: [...matches.values()].map((match) => ({
+        id: match.id,
+        seasonId: match.seasonId,
+        seasonName: match.season.name,
+        year: match.season.year,
+        isCurrent: match.season.isCurrent,
+        round: match.round,
+        date: match.date.toISOString(),
+        status: match.status,
+        homeTeam: mapTeam(match.homeTeam),
+        awayTeam: mapTeam(match.awayTeam),
+        homeScore: match.homeScore,
+        awayScore: match.awayScore,
+      })),
+      lineups: lineups.map((lineup) => ({
+        matchId: lineup.matchId,
+        status: lineup.status,
+        team: mapTeam(lineup.team),
+      })),
+      events: events.map((event) => ({
+        matchId: event.matchId,
+        type: event.type,
+        playerId: event.playerId,
+        assistPlayerId: event.assistPlayerId,
+        playerInId: event.playerInId,
+        team: event.team ? mapTeam(event.team) : null,
+      })),
+      ratings: ratings.map((rating) => ({
+        matchId: rating.matchId,
+        rating: rating.rating,
+      })),
     });
 
     return {
       player: mapPlayer(player),
-      rosters: rosters.map((r) => ({
-        seasonId: r.seasonId,
-        seasonName: r.season.name,
-        team: r.team ? mapTeam(r.team) : null,
-        number: r.number,
-        isCaptain: r.isCaptain,
+      ...profile,
+      // Campos antigos: o frontend anterior lia rosters/events. Sem eles a
+      // página quebrava se a API subisse antes do site. E-mail não entra.
+      rosters: rosters.map((roster) => ({
+        seasonId: roster.seasonId,
+        seasonName: roster.season.name,
+        team: roster.team ? mapTeam(roster.team) : null,
+        number: roster.number,
+        isCaptain: roster.isCaptain,
       })),
-      events: events.map((e) => ({
-        ...mapEvent({ ...e, player: player, assistPlayer: null, playerIn: null }),
-        match: mapMatch(e.match),
-      })),
+      events: events
+        .filter(
+          (event) =>
+            event.playerId === id &&
+            (event.type === "goal" ||
+              event.type === "penalty_goal" ||
+              event.type === "yellow_card" ||
+              event.type === "red_card"),
+        )
+        .map((event) => ({
+          id: event.id,
+          matchId: event.matchId,
+          type: event.type,
+          playerId: event.playerId,
+        })),
     };
   });
 

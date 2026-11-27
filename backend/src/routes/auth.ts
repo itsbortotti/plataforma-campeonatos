@@ -11,9 +11,29 @@ import {
 import { getCaptainInfo } from "../services/captain.js";
 import { listMembershipsForUser } from "../services/memberships.js";
 import { config } from "../core/config.js";
+import { loginRateLimitKey } from "../services/login-rate-limit.js";
 
 export async function authRoutes(app: FastifyInstance) {
-  app.post("/api/auth/login", async (request, reply) => {
+  app.post("/api/auth/login", {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: 15 * 60 * 1000,
+        keyGenerator: (req) => {
+          const body = (req.body ?? {}) as { email?: unknown };
+          return loginRateLimitKey(req.ip, body.email);
+        },
+        errorResponseBuilder: () => ({
+          statusCode: 429,
+          error:
+            "Muitas tentativas de login. Espere alguns minutos e tente de novo.",
+        }),
+        onExceeded: (req) => {
+          req.log.warn({ ip: req.ip }, "limite de tentativas de login excedido");
+        },
+      },
+    },
+  }, async (request, reply) => {
     const raw = (request.body ?? {}) as { email?: unknown; password?: unknown };
     const login =
       typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
@@ -42,6 +62,7 @@ export async function authRoutes(app: FastifyInstance) {
       if (user) break;
     }
     if (!user?.passwordHash) {
+      request.log.warn({ ip: request.ip }, "falha de login");
       return reply.code(401).send({
         error:
           "Usuário ou senha incorretos. No Master use master / senha do ambiente, ou o e-mail completo da conta.",
@@ -49,6 +70,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
+      request.log.warn({ ip: request.ip }, "falha de login");
       return reply.code(401).send({
         error:
           "E-mail ou senha incorretos. Confira a senha ou peça ao Master para redefinir.",

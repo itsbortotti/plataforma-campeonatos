@@ -19,6 +19,7 @@ export function mapTeam(row: Team) {
   };
 }
 
+/** Resposta pública. E-mail e userId ficam só em mapPlayerAdmin. */
 export function mapPlayer(row: Player) {
   return {
     id: row.id,
@@ -26,8 +27,14 @@ export function mapPlayer(row: Player) {
     nickname: row.nickname,
     position: row.position,
     photoUrl: row.photoUrl,
-    email: row.email,
     isActive: row.isActive,
+  };
+}
+
+export function mapPlayerAdmin(row: Player) {
+  return {
+    ...mapPlayer(row),
+    email: row.email,
     userId: row.userId,
   };
 }
